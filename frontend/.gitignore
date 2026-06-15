@@ -1,0 +1,11 @@
+node_modules
+dist
+dist-ssr
+*.local
+.env
+.DS_Store
+*.log
+.vite
+
+# FUSE-артефакты редактирования
+.fuse_hidden*

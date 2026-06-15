@@ -1,0 +1,1 @@
+export { AppointmentsListPage } from "./AppointmentsListPage";
