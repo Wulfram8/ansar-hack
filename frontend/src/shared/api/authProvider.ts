@@ -66,11 +66,4 @@ export const authProvider: AuthProvider = {
       return JSON.parse(raw);
     }
   },
-
-  getPermissions: async () => {
-    const raw = localStorage.getItem(STORAGE_KEYS.user);
-    if (!raw) return null;
-    const user = JSON.parse(raw);
-    return user?.role?.code ?? null;
-  },
 };
