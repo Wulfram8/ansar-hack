@@ -7,5 +7,5 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     queryset = Appointment.objects.all()
     serializer_class = AppointmentSerializer
     permission_classes = [IsAuthenticated]
-    search_fields = ['notes']
-    filterset_fields = ['status', 'patient', 'doctor', 'appointment_date']
+    search_fields = ['comment']
+    filterset_fields = ['status', 'patient', 'doctor', 'date']
