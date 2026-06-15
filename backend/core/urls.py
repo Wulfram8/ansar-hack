@@ -27,6 +27,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
     path('api/auth-token/', obtain_auth_token, name='api_token_auth'),
+    path('api/client/', include('client_api.urls')),
     
     # Swagger API Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

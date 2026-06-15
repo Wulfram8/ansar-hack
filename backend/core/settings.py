@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'analytics',
     'ai_assistant',
     'core',
+    'client_api',
 ]
 
 MIDDLEWARE = [

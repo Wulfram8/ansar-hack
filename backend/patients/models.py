@@ -24,6 +24,13 @@ class Patient(BaseModel):
         ('ARCHIVED', 'Archived'),
         ('BLOCKED', 'Blocked'),
     )
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='patient_profile',
+    )
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     middle_name = models.CharField(max_length=100, blank=True)
