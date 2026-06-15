@@ -1,0 +1,11 @@
+Django>=4.2,<5.0
+djangorestframework
+django-filter
+psycopg2-binary
+drf-spectacular
+django-cors-headers
+channels
+daphne
+celery
+redis
+uuid6

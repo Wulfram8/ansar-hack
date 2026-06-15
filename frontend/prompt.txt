@@ -1,0 +1,2 @@
+
+- Frontend: React and typescript, refine lib, shadcn ui and highcharts, tailwindcss, any other util lib when needed, the frontend should be in russian.
