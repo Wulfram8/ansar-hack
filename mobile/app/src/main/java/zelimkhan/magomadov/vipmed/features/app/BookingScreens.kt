@@ -1,12 +1,14 @@
 package zelimkhan.magomadov.vipmed.features.app
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -14,16 +16,20 @@ import androidx.compose.material.icons.rounded.MedicalServices
 import androidx.compose.material.icons.rounded.Science
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import zelimkhan.magomadov.vipmed.R
+import zelimkhan.magomadov.vipmed.core.common.ScreenStatus
 import zelimkhan.magomadov.vipmed.core.ui.DoctorCard
 import zelimkhan.magomadov.vipmed.core.ui.GradientPanel
 import zelimkhan.magomadov.vipmed.core.ui.InfoChip
@@ -39,6 +45,10 @@ fun BookingServiceScreen(
     onEvent: (BookingEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    LaunchedEffect(Unit) {
+        onEvent(BookingEvent.LoadServices)
+    }
+
     BookingScaffold(
         title = stringResource(R.string.booking_title),
         onBackClick = { onEvent(BookingEvent.BackClick) },
@@ -48,27 +58,42 @@ fun BookingServiceScreen(
     ) {
         item { StepChips(activeStep = 0) }
         item { SectionHeader(title = stringResource(R.string.choose_service)) }
-        item {
-            ListCard(
-                title = stringResource(R.string.service_cardiology),
-                subtitle = stringResource(R.string.service_cardiology_desc),
-                leadingIcon = Icons.Rounded.MedicalServices,
-                trailingText = stringResource(R.string.price_value),
-            )
-        }
-        item {
-            ListCard(
-                title = stringResource(R.string.service_tests),
-                subtitle = stringResource(R.string.service_tests_desc),
-                leadingIcon = Icons.Rounded.Science,
-            )
-        }
-        item {
-            ListCard(
-                title = stringResource(R.string.service_ultrasound),
-                subtitle = stringResource(R.string.service_ultrasound_desc),
-                leadingIcon = Icons.Rounded.CalendarMonth,
-            )
+        when (state.status) {
+            ScreenStatus.Loading -> {
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(32.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+            }
+
+            else -> {
+                if (state.services.isEmpty()) {
+                    item {
+                        Text(
+                            text = "Нет доступных услуг",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(16.dp),
+                        )
+                    }
+                } else {
+                    items(state.services) { service ->
+                        val isSelected = state.selectedService?.id == service.id
+                        ListCard(
+                            title = service.title,
+                            subtitle = service.category,
+                            leadingIcon = Icons.Rounded.MedicalServices,
+                            trailingText = if (service.priceKopecks > 0) {
+                                "${service.priceKopecks / 100} ₽"
+                            } else null,
+                            onClick = { onEvent(BookingEvent.ServiceSelected(service)) },
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -79,6 +104,10 @@ fun BookingDoctorScreen(
     onEvent: (BookingEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    LaunchedEffect(Unit) {
+        onEvent(BookingEvent.LoadDoctors)
+    }
+
     BookingScaffold(
         title = stringResource(R.string.booking_doctor_title),
         onBackClick = { onEvent(BookingEvent.BackClick) },
@@ -88,14 +117,39 @@ fun BookingDoctorScreen(
     ) {
         item { StepChips(activeStep = 1) }
         item { SectionHeader(title = stringResource(R.string.choose_doctor)) }
-        items(count = 3) {
-            DoctorCard(
-                name = stringResource(R.string.doctor_ivanova),
-                specialty = stringResource(R.string.doctor_specialty),
-                rating = stringResource(R.string.doctor_rating),
-                action = stringResource(R.string.choose_action),
-                onClick = { onEvent(BookingEvent.DoctorNextClick) },
-            )
+        when (state.status) {
+            ScreenStatus.Loading -> {
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(32.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+            }
+
+            else -> {
+                if (state.doctors.isEmpty()) {
+                    item {
+                        Text(
+                            text = "Нет врачей",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(16.dp),
+                        )
+                    }
+                } else {
+                    items(state.doctors) { doctor ->
+                        DoctorCard(
+                            name = "${doctor.lastName} ${doctor.firstName}".trim(),
+                            specialty = doctor.specialty,
+                            rating = "4.9",
+                            action = stringResource(R.string.choose_action),
+                            onClick = { onEvent(BookingEvent.DoctorSelected(doctor)) },
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -117,22 +171,52 @@ fun BookingDateTimeScreen(
         item { SectionHeader(title = stringResource(R.string.choose_date_time)) }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                InfoChip(text = stringResource(R.string.date_today), icon = Icons.Rounded.CalendarMonth)
-                InfoChip(text = stringResource(R.string.date_tomorrow), icon = Icons.Rounded.CalendarMonth)
-                InfoChip(text = stringResource(R.string.date_after), icon = Icons.Rounded.CalendarMonth)
+                InfoChip(
+                    text = stringResource(R.string.date_today),
+                    icon = Icons.Rounded.CalendarMonth,
+                    color = if (state.selectedDate == "today") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
+                )
+                InfoChip(
+                    text = stringResource(R.string.date_tomorrow),
+                    icon = Icons.Rounded.CalendarMonth,
+                    color = if (state.selectedDate == "tomorrow") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
+                )
+                InfoChip(
+                    text = stringResource(R.string.date_after),
+                    icon = Icons.Rounded.CalendarMonth,
+                    color = if (state.selectedDate == "after") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
+                )
             }
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                InfoChip(text = stringResource(R.string.time_morning), icon = Icons.Rounded.Schedule)
-                InfoChip(text = stringResource(R.string.time_day), icon = Icons.Rounded.Schedule)
-                InfoChip(text = stringResource(R.string.time_evening), icon = Icons.Rounded.Schedule)
+                InfoChip(
+                    text = stringResource(R.string.time_morning),
+                    icon = Icons.Rounded.Schedule,
+                    color = if (state.selectedTime == "09:30") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
+                )
+                InfoChip(
+                    text = stringResource(R.string.time_day),
+                    icon = Icons.Rounded.Schedule,
+                    color = if (state.selectedTime == "13:00") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
+                )
+                InfoChip(
+                    text = stringResource(R.string.time_evening),
+                    icon = Icons.Rounded.Schedule,
+                    color = if (state.selectedTime == "17:00") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
+                )
             }
         }
         item {
             GradientPanel(
-                title = stringResource(R.string.visit_time),
-                subtitle = stringResource(R.string.doctor_ivanova),
+                title = if (state.selectedDoctor != null) {
+                    "${state.selectedDate.ifEmpty { "Сегодня" }} ${state.selectedTime.ifEmpty { "09:30" }}"
+                } else {
+                    stringResource(R.string.visit_time)
+                },
+                subtitle = state.selectedDoctor?.let {
+                    "${it.lastName} ${it.firstName}".trim()
+                } ?: stringResource(R.string.doctor_ivanova),
                 icon = Icons.Rounded.Schedule,
             )
         }
@@ -156,16 +240,20 @@ fun BookingConfirmScreen(
         item { SectionHeader(title = stringResource(R.string.booking_summary)) }
         item {
             ListCard(
-                title = state.selectedService,
-                subtitle = state.selectedDoctor,
+                title = state.selectedService?.title ?: "Услуга",
+                subtitle = state.selectedDoctor?.let {
+                    "${it.lastName} ${it.firstName}".trim()
+                } ?: "Врач",
                 leadingIcon = Icons.Rounded.MedicalServices,
-                trailingText = stringResource(R.string.price_value),
+                trailingText = state.selectedService?.let {
+                    if (it.priceKopecks > 0) "${it.priceKopecks / 100} ₽" else null
+                },
             )
         }
         item {
             ListCard(
-                title = state.selectedDate,
-                subtitle = state.selectedTime,
+                title = state.selectedDate.ifEmpty { "Сегодня" },
+                subtitle = state.selectedTime.ifEmpty { "09:30" },
                 leadingIcon = Icons.Rounded.Schedule,
             )
         }
@@ -175,6 +263,16 @@ fun BookingConfirmScreen(
                 subtitle = stringResource(R.string.clinic_address),
                 leadingIcon = Icons.Rounded.CalendarMonth,
             )
+        }
+        if (state.isLoading) {
+            item {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
         }
     }
 }
@@ -200,10 +298,12 @@ fun BookingSuccessScreen(
                     icon = Icons.Rounded.CheckCircle,
                 )
                 ListCard(
-                    title = state.selectedService,
-                    subtitle = state.selectedDoctor,
+                    title = state.selectedService?.title ?: "Услуга",
+                    subtitle = state.selectedDoctor?.let {
+                        "${it.lastName} ${it.firstName}".trim()
+                    } ?: "Врач",
                     leadingIcon = Icons.Rounded.MedicalServices,
-                    trailingText = state.selectedTime,
+                    trailingText = state.selectedTime.ifEmpty { "09:30" },
                 )
             }
             PrimaryActionButton(
@@ -281,7 +381,7 @@ private fun StepChips(activeStep: Int) {
 private fun BookingServiceScreenPreview() {
     VipMedTheme(dynamicColor = false) {
         BookingServiceScreen(
-            state = BookingState(),
+            state = BookingState(status = ScreenStatus.Success),
             onEvent = {},
         )
     }

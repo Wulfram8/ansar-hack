@@ -1,3 +1,4 @@
+import uuid6
 from django.db import models
 from core.models import BaseModel
 from django.conf import settings
@@ -62,3 +63,36 @@ class CallLog(BaseModel):
     result = models.CharField(max_length=20, choices=RESULT_CHOICES)
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     started_at = models.DateTimeField()
+
+
+class DoctorChat(BaseModel):
+    """Chat room between a patient and a doctor, linked to an appointment."""
+    appointment = models.OneToOneField(
+        'appointments.Appointment',
+        on_delete=models.CASCADE,
+        related_name='chat',
+    )
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='doctor_chats')
+    doctor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='doctor_chats')
+
+    def __str__(self):
+        return f"Chat for appointment {self.appointment_id}"
+
+
+class DoctorChatMessage(models.Model):
+    SENDER_CHOICES = (
+        ('PATIENT', 'Patient'),
+        ('DOCTOR', 'Doctor'),
+    )
+    id = models.UUIDField(primary_key=True, default=uuid6.uuid7, editable=False)
+    chat = models.ForeignKey(DoctorChat, on_delete=models.CASCADE, related_name='messages')
+    sender_role = models.CharField(max_length=10, choices=SENDER_CHOICES)
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.sender_role}: {self.content[:50]}"
