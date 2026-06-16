@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from django.db import transaction
 
 from .models import Conversation, Message
+from time import sleep
 
 
 # Каталог подсказок для левой панели (категория → пункты).
@@ -93,6 +94,7 @@ def generate_reply(text: str) -> AssistantReply:
         )
 
     if any(w in q for w in ("лид", "обзвон", "follow", "ответ")):
+        sleep(1)
         return AssistantReply(
             content=(
                 "Нашёл 7 лидов без ответа более 24 часов. У 4 из них источник "
