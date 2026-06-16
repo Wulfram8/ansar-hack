@@ -1,5 +1,8 @@
-import { useGetIdentity, useLogout } from "@refinedev/core";
+import { useState } from "react";
+import { useGetIdentity, useLogout, useNavigation } from "@refinedev/core";
+import { useNavigate } from "react-router-dom";
 import { Search, CircleHelp, Bell, LogOut, User } from "lucide-react";
+import { toastStore } from "@/shared/ui";
 import {
   Avatar,
   Button,
@@ -21,6 +24,16 @@ interface Identity {
 export function Header() {
   const { data: identity } = useGetIdentity<Identity>();
   const { mutate: logout } = useLogout();
+  const { list } = useNavigation();
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+
+  const runSearch = () => {
+    const q = query.trim();
+    if (!q) return;
+    // Глобальный поиск ведёт в список пациентов с предзаполненным запросом.
+    window.location.assign(`/patients?search=${encodeURIComponent(q)}`);
+  };
 
   const name =
     [identity?.last_name, identity?.first_name].filter(Boolean).join(" ") ||
@@ -38,6 +51,11 @@ export function Header() {
       <div className="flex h-9 w-[380px] max-w-[40vw] items-center gap-2 rounded-md border bg-muted/50 px-3">
         <Search className="h-4 w-4 text-muted-foreground" />
         <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") runSearch();
+          }}
           className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           placeholder="Поиск пациентов, врачей, записей..."
         />
@@ -45,11 +63,26 @@ export function Header() {
 
       {/* Действия справа */}
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" aria-label="Помощь">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Помощь"
+          onClick={() =>
+            toastStore.push({
+              message: "Справка",
+              description: "Документация и поддержка скоро будут доступны здесь.",
+            })
+          }
+        >
           <CircleHelp className="h-4 w-4" />
         </Button>
         <div className="relative">
-          <Button variant="ghost" size="icon" aria-label="Уведомления">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Уведомления"
+            onClick={() => list("notification_templates")}
+          >
             <Bell className="h-4 w-4" />
           </Button>
           <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive" />
@@ -76,7 +109,7 @@ export function Header() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem disabled>
+            <DropdownMenuItem onClick={() => navigate("/profile")}>
               <User className="h-4 w-4" />
               Профиль
             </DropdownMenuItem>

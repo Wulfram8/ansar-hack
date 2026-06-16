@@ -31,6 +31,11 @@ export interface Appointment {
   cancel_reason?: string;
   cancelled_at?: string | null;
   created_at?: string;
+  /** Развёрнутые поля (read-only, отдаёт бэкенд для таблицы). */
+  patient_name?: string | null;
+  doctor_name?: string | null;
+  service_title?: string | null;
+  status_display?: string;
 }
 
 export const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {

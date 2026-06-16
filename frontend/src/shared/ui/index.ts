@@ -10,3 +10,7 @@ export * from "./table";
 export * from "./select";
 export * from "./dropdown-menu";
 export * from "./toast";
+export * from "./popover";
+export * from "./calendar";
+export * from "./date-picker";
+export * from "./dialog";

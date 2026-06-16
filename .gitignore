@@ -1,0 +1,7 @@
+
+# verification artifacts (local only)
+backend/_wtest.txt
+backend/verify.sqlite3
+backend/verify.sqlite3-journal
+backend/core/settings_sqlite.py
+frontend/vite.config.ts.timestamp-*.mjs

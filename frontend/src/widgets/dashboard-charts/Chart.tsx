@@ -23,19 +23,23 @@ Highcharts.setOptions({
 });
 
 interface ChartProps {
-  title: string;
+  /** Если задан — график оборачивается в карточку с заголовком.
+   *  Если опущен — рендерится «голый» график для вставки в свою карточку. */
+  title?: string;
   options: Highcharts.Options;
 }
 
 export function Chart({ title, options }: ChartProps) {
+  const chart = <HighchartsReact highcharts={Highcharts} options={options} />;
+
+  if (!title) return chart;
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
-      <CardContent>
-        <HighchartsReact highcharts={Highcharts} options={options} />
-      </CardContent>
+      <CardContent>{chart}</CardContent>
     </Card>
   );
 }
