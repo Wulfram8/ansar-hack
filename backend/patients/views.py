@@ -226,6 +226,27 @@ class PatientViewSet(viewsets.ModelViewSet):
         })
 
 
+    @action(detail=True, methods=['post'], url_path='add-note')
+    def add_note(self, request, pk=None):
+        """Добавить комментарий/рекомендацию врача в таймлайн пациента."""
+        from .models import PatientTimelineEvent
+        patient = self.get_object()
+        text = (request.data.get('note') or '').strip()
+        if not text:
+            return Response({'detail': 'Пустой комментарий.'}, status=status.HTTP_400_BAD_REQUEST)
+        u = request.user
+        author = " ".join(filter(None, [u.last_name, u.first_name])) or u.get_username()
+        event = PatientTimelineEvent.objects.create(
+            patient=patient,
+            type='NOTE',
+            payload={'note': text, 'author': author},
+            actor=u,
+        )
+        return Response(
+            {'id': event.id, 'type': event.type, 'payload': event.payload, 'created_at': event.created_at},
+            status=status.HTTP_201_CREATED,
+        )
+
 class PatientSourceViewSet(viewsets.ModelViewSet):
     """Справочник источников пациентов (для фильтров и формы)."""
     queryset = PatientSource.objects.all().order_by('title')

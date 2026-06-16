@@ -229,7 +229,7 @@ export function AppointmentsListPage() {
               )}
               {!isLoading &&
                 items.map((a) => (
-                  <TableRow key={a.id}>
+                  <TableRow key={a.id} onClick={() => openEdit(a)} className="cursor-pointer">
                     <TableCell>{formatDate(a.date)}</TableCell>
                     <TableCell>
                       {a.start_time?.slice(0, 5)}–{a.end_time?.slice(0, 5)}
@@ -247,7 +247,7 @@ export function AppointmentsListPage() {
                         {APPOINTMENT_STATUS_LABELS[a.status]}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
