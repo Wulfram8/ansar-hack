@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus, Send, Sparkles, MessageSquare, FileText, ListTodo, Megaphone } from "lucide-react";
 import { Button, Textarea, Skeleton, toastStore } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils";
@@ -13,7 +14,7 @@ function actionIcon(action: string) {
   return Sparkles;
 }
 
-function ActionButtons({ actions }: { actions: AssistantAction[] }) {
+function ActionButtons({ actions, onAction }: { actions: AssistantAction[]; onAction: (a: AssistantAction) => void }) {
   if (!actions?.length) return null;
   return (
     <div className="mt-3 flex flex-wrap gap-2">
@@ -25,12 +26,7 @@ function ActionButtons({ actions }: { actions: AssistantAction[] }) {
             key={a.action}
             size="sm"
             variant={primary ? "default" : "outline"}
-            onClick={() =>
-              toastStore.push({
-                message: a.label,
-                description: "Действие зарегистрировано (демо-режим ассистента).",
-              })
-            }
+            onClick={() => onAction(a)}
           >
             <Icon className="h-4 w-4" />
             {a.label}
@@ -95,6 +91,24 @@ export function AssistantPage() {
     createConversation,
     sendMessage,
   } = useAssistant();
+
+  const navigate = useNavigate();
+
+  // Действия из ответа ассистента ведут в соответствующий раздел CRM.
+  const handleAction = (a: AssistantAction) => {
+    const routes: Record<string, string> = {
+      open_report: "/",
+      confirm_broadcast: "/notifications",
+      create_task: "/leads",
+    };
+    const to = routes[a.action];
+    if (to) {
+      navigate(to);
+      toastStore.push({ message: a.label, description: "Открываю соответствующий раздел." });
+    } else {
+      toastStore.push({ message: a.label });
+    }
+  };
 
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -200,7 +214,7 @@ export function AssistantPage() {
                   )}
                 >
                   <div className="whitespace-pre-wrap leading-relaxed">{m.content}</div>
-                  {!isUser && <ActionButtons actions={m.tool_calls} />}
+                  {!isUser && <ActionButtons actions={m.tool_calls} onAction={handleAction} />}
                 </div>
               </div>
             );

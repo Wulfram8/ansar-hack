@@ -4,10 +4,10 @@ from rest_framework.routers import DefaultRouter
 from rest_framework.authtoken.views import obtain_auth_token
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
-from accounts.views import UserViewSet
+from accounts.views import UserViewSet, RoleViewSet, DoctorViewSet
 from patients.views import PatientViewSet, PatientSourceViewSet, PatientTagViewSet
 from leads.views import LeadViewSet
-from appointments.views import AppointmentViewSet
+from appointments.views import AppointmentViewSet, ServiceViewSet
 from notifications.views import (
     NotificationTemplateViewSet,
     AutomationRuleViewSet,
@@ -16,11 +16,14 @@ from notifications.views import (
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
+router.register(r'roles', RoleViewSet, basename='role')
+router.register(r'doctors', DoctorViewSet, basename='doctor')
 router.register(r'patients', PatientViewSet, basename='patient')
 router.register(r'patient-sources', PatientSourceViewSet, basename='patient-source')
 router.register(r'patient-tags', PatientTagViewSet, basename='patient-tag')
 router.register(r'leads', LeadViewSet, basename='lead')
 router.register(r'appointments', AppointmentViewSet, basename='appointment')
+router.register(r'services', ServiceViewSet, basename='service')
 router.register(r'notifications/templates', NotificationTemplateViewSet, basename='notification-template')
 router.register(r'notifications/rules', AutomationRuleViewSet, basename='automation-rule')
 router.register(r'notifications/scheduled', ScheduledNotificationViewSet, basename='scheduled-notification')

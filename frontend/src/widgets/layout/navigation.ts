@@ -5,8 +5,6 @@ import {
   CalendarDays,
   UserPlus,
   MessageSquare,
-  BarChart3,
-  Megaphone,
   Bell,
   Sparkles,
   UserCog,
@@ -45,19 +43,17 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    title: "Аналитика и маркетинг",
+    title: "Автоматизация",
     items: [
-      { label: "Аналитика", icon: BarChart3 },
-      { label: "Маркетинг", icon: Megaphone },
-      { label: "Уведомления", icon: Bell },
+      { to: "/notifications", label: "Уведомления", icon: Bell },
       { to: "/assistant", label: "AI Ассистент", icon: Sparkles },
     ],
   },
   {
     title: "Система",
     items: [
-      { label: "Сотрудники", icon: UserCog },
-      { label: "Настройки", icon: Settings },
+      { to: "/employees", label: "Сотрудники", icon: UserCog },
+      { to: "/settings", label: "Настройки", icon: Settings },
     ],
   },
 ];

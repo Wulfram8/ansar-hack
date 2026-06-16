@@ -14,10 +14,10 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  toastStore,
 } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils";
 import { useScheduleBoard } from "./useScheduleBoard";
+import { ScheduleFormDialog } from "./ScheduleFormDialog";
 
 type ViewMode = "day" | "week" | "month";
 
@@ -61,10 +61,12 @@ export function SchedulePage() {
   });
   const [specialty, setSpecialty] = useState<string>(ALL);
   const [load, setLoad] = useState<string>(ALL);
+  const [shiftOpen, setShiftOpen] = useState(false);
+  const [timeoffOpen, setTimeoffOpen] = useState(false);
 
   // Доска всегда грузится по неделе, содержащей cursor.
   const weekStart = useMemo(() => mondayOf(cursor), [cursor]);
-  const { data, isLoading } = useScheduleBoard(iso(weekStart));
+  const { data, isLoading, refetch } = useScheduleBoard(iso(weekStart));
   const board = data?.data;
 
   const monthLabel = useMemo(
@@ -137,24 +139,14 @@ export function SchedulePage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() =>
-              toastStore.push({
-                message: "Оформление отпуска",
-                description: "Форма добавления отпуска появится в следующем релизе.",
-              })
-            }
+            onClick={() => setTimeoffOpen(true)}
             className="inline-flex h-9 items-center gap-2 rounded-md border bg-card px-3 text-sm font-medium hover:bg-accent"
           >
             <Plane className="h-4 w-4" />
             Отпуск
           </button>
           <button
-            onClick={() =>
-              toastStore.push({
-                message: "Новая смена",
-                description: "Форма создания смены появится в следующем релизе.",
-              })
-            }
+            onClick={() => setShiftOpen(true)}
             className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             <Plus className="h-4 w-4" />
@@ -492,6 +484,9 @@ export function SchedulePage() {
           </div>
         </div>
       </div>
+
+      <ScheduleFormDialog open={shiftOpen} onOpenChange={setShiftOpen} mode="shift" onSaved={() => refetch()} />
+      <ScheduleFormDialog open={timeoffOpen} onOpenChange={setTimeoffOpen} mode="timeoff" onSaved={() => refetch()} />
     </div>
   );
 }

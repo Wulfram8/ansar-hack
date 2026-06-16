@@ -154,7 +154,79 @@ class PatientViewSet(viewsets.ModelViewSet):
         )
 
 
-class PatientSourceViewSet(viewsets.ReadOnlyModelViewSet):
+    @action(detail=True, methods=['get'])
+    def history(self, request, pk=None):
+        """Полная история пациента для карточки: таймлайн, визиты, звонки,
+        сообщения и заявки. Возвращает структуру со списками."""
+        from appointments.models import Appointment
+        from leads.models import Lead
+        from communications.models import Message, CallLog
+        from appointments.serializers import AppointmentSerializer
+
+        patient = self.get_object()
+
+        timeline = [
+            {
+                'id': e.id,
+                'type': e.type,
+                'payload': e.payload,
+                'created_at': e.created_at,
+            }
+            for e in patient.timeline_events.all().order_by('-created_at')[:100]
+        ]
+
+        appointments = AppointmentSerializer(
+            patient.appointments.select_related('doctor', 'service').order_by('-date', '-start_time'),
+            many=True,
+        ).data
+
+        calls = [
+            {
+                'id': str(c.id),
+                'direction': c.direction,
+                'duration_sec': c.duration_sec,
+                'result': c.result,
+                'transcript': c.transcript,
+                'started_at': c.started_at,
+            }
+            for c in patient.call_logs.all().order_by('-started_at')[:100]
+        ]
+
+        messages = [
+            {
+                'id': str(m.id),
+                'direction': m.direction,
+                'channel': m.channel.code if m.channel else None,
+                'subject': m.subject,
+                'body': m.body,
+                'status': m.status,
+                'sent_at': m.sent_at,
+                'created_at': m.created_at,
+            }
+            for m in patient.messages.select_related('channel').order_by('-created_at')[:100]
+        ]
+
+        leads = [
+            {
+                'id': str(l.id),
+                'channel': l.channel,
+                'status': l.status,
+                'estimated_value_kopecks': l.estimated_value_kopecks,
+                'created_at': l.created_at,
+            }
+            for l in patient.origin_leads.all().order_by('-created_at')[:100]
+        ]
+
+        return Response({
+            'timeline': timeline,
+            'appointments': appointments,
+            'calls': calls,
+            'messages': messages,
+            'leads': leads,
+        })
+
+
+class PatientSourceViewSet(viewsets.ModelViewSet):
     """Справочник источников пациентов (для фильтров и формы)."""
     queryset = PatientSource.objects.all().order_by('title')
     serializer_class = PatientSourceSerializer
@@ -162,7 +234,7 @@ class PatientSourceViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
 
 
-class PatientTagViewSet(viewsets.ReadOnlyModelViewSet):
+class PatientTagViewSet(viewsets.ModelViewSet):
     """Справочник тегов пациентов (для фильтров и формы)."""
     queryset = PatientTag.objects.all().order_by('label')
     serializer_class = PatientTagSerializer

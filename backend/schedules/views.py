@@ -200,3 +200,26 @@ class ScheduleBoardView(APIView):
             "time_off": time_off,
         }
         return Response(ScheduleBoardSerializer(payload).data)
+
+
+from rest_framework import viewsets
+from .models import DoctorSchedule, ScheduleException
+from .serializers import DoctorScheduleSerializer, ScheduleExceptionSerializer
+
+
+class DoctorScheduleViewSet(viewsets.ModelViewSet):
+    """Рабочие смены врачей (постоянное недельное расписание)."""
+    queryset = DoctorSchedule.objects.select_related('doctor__user').all().order_by('weekday', 'start_time')
+    serializer_class = DoctorScheduleSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+    filterset_fields = ['doctor', 'weekday']
+
+
+class ScheduleExceptionViewSet(viewsets.ModelViewSet):
+    """Исключения: отпуска, больничные, выходные, блокировки."""
+    queryset = ScheduleException.objects.select_related('doctor__user').all().order_by('-date')
+    serializer_class = ScheduleExceptionSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+    filterset_fields = ['doctor', 'type']

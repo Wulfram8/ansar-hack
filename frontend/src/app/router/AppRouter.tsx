@@ -12,6 +12,10 @@ import {
   LeadsPage,
   SchedulePage,
   NotificationTemplatesPage,
+  NotificationsPage,
+  EmployeesPage,
+  SettingsPage,
+  ProfilePage,
   AssistantPage,
   LoginPage,
   NotFoundPage,
@@ -43,6 +47,10 @@ export function AppRouter() {
         <Route path="/leads" element={<LeadsPage />} />
         <Route path="/schedule" element={<SchedulePage />} />
         <Route path="/notifications/templates" element={<NotificationTemplatesPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/employees" element={<EmployeesPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/assistant" element={<AssistantPage />} />
 
         <Route path="*" element={<NotFoundPage />} />

@@ -65,3 +65,38 @@ class ScheduleBoardSerializer(serializers.Serializer):
     load_avg = serializers.FloatField()
     load_bars = LoadBarSerializer(many=True)
     time_off = TimeOffSerializer(many=True)
+
+
+# --- CRUD-сериализаторы графиков и исключений ---
+
+class DoctorScheduleSerializer(serializers.ModelSerializer):
+    doctor_name = serializers.SerializerMethodField()
+
+    class Meta:
+        from .models import DoctorSchedule
+        model = DoctorSchedule
+        fields = [
+            'id', 'doctor', 'doctor_name', 'weekday', 'start_time', 'end_time',
+            'break_start', 'break_end', 'active_from', 'active_to', 'created_at',
+        ]
+
+    def get_doctor_name(self, obj):
+        u = obj.doctor.user
+        return " ".join(filter(None, [u.last_name, u.first_name])) or u.get_username()
+
+
+class ScheduleExceptionSerializer(serializers.ModelSerializer):
+    doctor_name = serializers.SerializerMethodField()
+    type_display = serializers.CharField(source='get_type_display', read_only=True)
+
+    class Meta:
+        from .models import ScheduleException
+        model = ScheduleException
+        fields = [
+            'id', 'doctor', 'doctor_name', 'date', 'type', 'type_display',
+            'start_time', 'end_time', 'reason', 'created_at',
+        ]
+
+    def get_doctor_name(self, obj):
+        u = obj.doctor.user
+        return " ".join(filter(None, [u.last_name, u.first_name])) or u.get_username()

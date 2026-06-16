@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useGetIdentity, useLogout, useNavigation } from "@refinedev/core";
+import { useNavigate } from "react-router-dom";
 import { Search, CircleHelp, Bell, LogOut, User } from "lucide-react";
 import { toastStore } from "@/shared/ui";
 import {
@@ -24,6 +25,7 @@ export function Header() {
   const { data: identity } = useGetIdentity<Identity>();
   const { mutate: logout } = useLogout();
   const { list } = useNavigation();
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
 
   const runSearch = () => {
@@ -107,7 +109,7 @@ export function Header() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem disabled>
+            <DropdownMenuItem onClick={() => navigate("/profile")}>
               <User className="h-4 w-4" />
               Профиль
             </DropdownMenuItem>

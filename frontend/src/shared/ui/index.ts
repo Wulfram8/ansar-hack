@@ -13,3 +13,4 @@ export * from "./toast";
 export * from "./popover";
 export * from "./calendar";
 export * from "./date-picker";
+export * from "./dialog";

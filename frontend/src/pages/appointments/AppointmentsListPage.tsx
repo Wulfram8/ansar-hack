@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useList } from "@refinedev/core";
+import { useList, useUpdate, useInvalidate } from "@refinedev/core";
 import type { CrudFilter } from "@refinedev/core";
 import {
   Search,
@@ -7,6 +7,11 @@ import {
   ChevronRight,
   X,
   CalendarCheck,
+  Plus,
+  MoreVertical,
+  Pencil,
+  Ban,
+  CheckCircle2,
 } from "lucide-react";
 import {
   Badge,
@@ -27,6 +32,12 @@ import {
   TableHeader,
   TableRow,
   Skeleton,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  toastStore,
 } from "@/shared/ui";
 import {
   type Appointment,
@@ -36,6 +47,7 @@ import {
 } from "@/entities/appointment";
 import { DEFAULT_PAGE_SIZE } from "@/shared/config";
 import { formatDate } from "@/shared/lib/utils";
+import { AppointmentFormDialog } from "./AppointmentFormDialog";
 
 const ALL = "__all__";
 
@@ -46,6 +58,37 @@ export function AppointmentsListPage() {
   const [page, setPage] = useState(1);
 
   const resetPage = () => setPage(1);
+
+  const invalidate = useInvalidate();
+  const { mutate: update } = useUpdate();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<Appointment | null>(null);
+
+  const openCreate = () => { setEditing(null); setDialogOpen(true); };
+  const openEdit = (a: Appointment) => { setEditing(a); setDialogOpen(true); };
+
+  const changeStatus = (a: Appointment, status: Appointment["status"], reason?: string) => {
+    update(
+      {
+        resource: "appointments",
+        id: a.id,
+        values: {
+          status,
+          ...(status === "CANCELLED"
+            ? { cancel_reason: reason ?? "", cancelled_at: new Date().toISOString() }
+            : {}),
+        },
+        successNotification: false,
+      },
+      {
+        onSuccess: () => {
+          toastStore.push({ message: "Статус записи обновлён", type: "success" });
+          invalidate({ resource: "appointments", invalidates: ["list"] });
+        },
+        onError: () => toastStore.push({ message: "Не удалось обновить статус", type: "error" }),
+      },
+    );
+  };
 
   const filters = useMemo<CrudFilter[]>(() => {
     const f: CrudFilter[] = [];
@@ -93,6 +136,10 @@ export function AppointmentsListPage() {
             Все записи пациентов к врачам
           </p>
         </div>
+        <Button size="sm" onClick={openCreate}>
+          <Plus className="h-4 w-4" />
+          Новая запись
+        </Button>
       </div>
 
       {/* Панель фильтров */}
@@ -160,20 +207,21 @@ export function AppointmentsListPage() {
                 <TableHead>Услуга</TableHead>
                 <TableHead>Кабинет</TableHead>
                 <TableHead>Статус</TableHead>
+                <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading &&
                 Array.from({ length: 6 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={7}>
+                    <TableCell colSpan={8}>
                       <Skeleton className="h-6 w-full" />
                     </TableCell>
                   </TableRow>
                 ))}
               {!isLoading && items.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-16 text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="py-16 text-center text-muted-foreground">
                     <CalendarCheck className="mx-auto mb-2 h-8 w-8 opacity-40" />
                     Записи не найдены
                   </TableCell>
@@ -198,6 +246,45 @@ export function AppointmentsListPage() {
                       <Badge variant={APPOINTMENT_STATUS_VARIANTS[a.status]}>
                         {APPOINTMENT_STATUS_LABELS[a.status]}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEdit(a)}>
+                            <Pencil className="h-4 w-4" />
+                            Редактировать
+                          </DropdownMenuItem>
+                          {a.status !== "CONFIRMED" && a.status !== "CANCELLED" && (
+                            <DropdownMenuItem onClick={() => changeStatus(a, "CONFIRMED")}>
+                              <CheckCircle2 className="h-4 w-4" />
+                              Подтвердить
+                            </DropdownMenuItem>
+                          )}
+                          {a.status !== "COMPLETED" && a.status !== "CANCELLED" && (
+                            <DropdownMenuItem onClick={() => changeStatus(a, "COMPLETED")}>
+                              <CheckCircle2 className="h-4 w-4" />
+                              Завершить
+                            </DropdownMenuItem>
+                          )}
+                          {a.status !== "CANCELLED" && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => changeStatus(a, "CANCELLED")}
+                              >
+                                <Ban className="h-4 w-4" />
+                                Отменить
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -235,6 +322,12 @@ export function AppointmentsListPage() {
           </div>
         </CardContent>
       </Card>
+
+      <AppointmentFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        appointment={editing}
+      />
     </div>
   );
 }

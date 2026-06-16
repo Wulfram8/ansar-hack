@@ -53,4 +53,19 @@ export const resources: ResourceProps[] = [
     list: "/notifications/templates",
     meta: { label: "Уведомления" },
   },
+  {
+    name: "employees",
+    list: "/employees",
+    meta: { label: "Сотрудники" },
+  },
+  {
+    name: "settings",
+    list: "/settings",
+    meta: { label: "Настройки" },
+  },
+  {
+    name: "notifications-log",
+    list: "/notifications",
+    meta: { label: "Уведомления" },
+  },
 ];

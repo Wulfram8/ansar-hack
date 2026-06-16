@@ -10,3 +10,24 @@ export function useScheduleBoard(week: string) {
     config: { query: { week } },
   });
 }
+
+import { useList } from "@refinedev/core";
+
+export interface DoctorLite {
+  id: string;
+  user: string;
+  user_name: string;
+  initials: string;
+  specialty: string;
+  color_hex: string;
+  cabinet: string;
+}
+
+/** Список врачей (для форм смены и отпуска). */
+export function useDoctors() {
+  const { data } = useList<DoctorLite>({
+    resource: "doctors",
+    pagination: { mode: "off" },
+  });
+  return data?.data ?? [];
+}

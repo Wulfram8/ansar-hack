@@ -39,7 +39,6 @@ import {
   SelectValue,
   DateRangePicker,
   type DateRangeValue,
-  toastStore,
 } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils";
 import {
@@ -53,6 +52,7 @@ import {
 } from "@/entities/lead";
 import { formatMoneyKopecks, formatTimeAgo } from "@/shared/lib/utils";
 import { useLeadSources, useAdmins } from "./useLeadMeta";
+import { LeadFormDialog } from "./LeadFormDialog";
 
 const ALL = "__all__";
 
@@ -119,7 +119,7 @@ function LeadCardBody({ lead }: { lead: Lead }) {
   );
 }
 
-function DraggableCard({ lead }: { lead: Lead }) {
+function DraggableCard({ lead, onOpen }: { lead: Lead; onOpen: (l: Lead) => void }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: lead.id,
     data: { status: lead.status },
@@ -129,6 +129,7 @@ function DraggableCard({ lead }: { lead: Lead }) {
       ref={setNodeRef}
       {...listeners}
       {...attributes}
+      onClick={() => onOpen(lead)}
       className={cn(
         "touch-none rounded-lg border bg-card p-3 shadow-sm transition-shadow hover:shadow-md",
         isDragging ? "cursor-grabbing opacity-40" : "cursor-grab",
@@ -145,12 +146,14 @@ function Column({
   isLoading,
   isOver,
   onAdd,
+  onOpen,
 }: {
   stage: LeadStatus;
   leads: Lead[];
   isLoading: boolean;
   isOver: boolean;
   onAdd: (stage: LeadStatus) => void;
+  onOpen: (l: Lead) => void;
 }) {
   const { setNodeRef } = useDroppable({ id: stage });
   return (
@@ -189,7 +192,7 @@ function Column({
         {!isLoading && leads.length === 0 && (
           <p className="py-6 text-center text-xs text-muted-foreground/70">Нет лидов</p>
         )}
-        {!isLoading && leads.map((lead) => <DraggableCard key={lead.id} lead={lead} />)}
+        {!isLoading && leads.map((lead) => <DraggableCard key={lead.id} lead={lead} onOpen={onOpen} />)}
       </div>
     </div>
   );
@@ -207,11 +210,21 @@ export function LeadsPage() {
   const [dateRange, setDateRange] = useState<DateRangeValue | undefined>();
   const [hotOnly, setHotOnly] = useState(false);
 
-  const notifyComingSoon = () =>
-    toastStore.push({
-      message: "Создание лида",
-      description: "Форма нового лида появится в следующем релизе.",
-    });
+  // Состояние модального окна создания/редактирования лида.
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [createStage, setCreateStage] = useState<LeadStatus | undefined>();
+
+  const openCreate = (stage?: LeadStatus) => {
+    setEditingLead(null);
+    setCreateStage(stage);
+    setDialogOpen(true);
+  };
+  const openEdit = (lead: Lead) => {
+    setEditingLead(lead);
+    setCreateStage(undefined);
+    setDialogOpen(true);
+  };
 
   const filters = useMemo<CrudFilter[]>(() => {
     const f: CrudFilter[] = [];
@@ -315,7 +328,7 @@ export function LeadsPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={notifyComingSoon}
+            onClick={() => openCreate()}
             className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             <Plus className="h-4 w-4" />
@@ -419,7 +432,8 @@ export function LeadsPage() {
               )}
               isLoading={isLoading}
               isOver={overStage === stage}
-              onAdd={notifyComingSoon}
+              onAdd={openCreate}
+              onOpen={openEdit}
             />
           ))}
         </div>
@@ -432,6 +446,13 @@ export function LeadsPage() {
           )}
         </DragOverlay>
       </DndContext>
+
+      <LeadFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        lead={editingLead}
+        defaultStatus={createStage}
+      />
     </div>
   );
 }

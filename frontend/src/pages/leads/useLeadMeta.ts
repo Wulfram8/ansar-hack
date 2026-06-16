@@ -25,3 +25,19 @@ export function useAdmins() {
   });
   return data?.data ?? [];
 }
+
+export interface ServiceLite {
+  id: string;
+  title: string;
+  price_kopecks: number;
+  duration_min: number;
+}
+
+/** Список услуг (для интереса лида и формы записи). */
+export function useServices() {
+  const { data } = useList<ServiceLite>({
+    resource: "services",
+    pagination: { mode: "off" },
+  });
+  return data?.data ?? [];
+}
