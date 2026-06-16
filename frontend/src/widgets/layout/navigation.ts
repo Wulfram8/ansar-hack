@@ -39,7 +39,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { to: "/", label: "Дашборд", icon: LayoutDashboard },
       { to: "/patients", label: "Пациенты", icon: Users },
       { to: "/appointments", label: "Записи", icon: CalendarCheck, badge: 24 },
-      { label: "Расписание врачей", icon: CalendarDays },
+      { to: "/schedule", label: "Расписание врачей", icon: CalendarDays },
       { to: "/leads", label: "Лиды", icon: UserPlus, badge: 7 },
       { to: "/notifications/templates", label: "Коммуникации", icon: MessageSquare },
     ],
@@ -50,7 +50,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: "Аналитика", icon: BarChart3 },
       { label: "Маркетинг", icon: Megaphone },
       { label: "Уведомления", icon: Bell },
-      { label: "AI Ассистент", icon: Sparkles },
+      { to: "/assistant", label: "AI Ассистент", icon: Sparkles },
     ],
   },
   {

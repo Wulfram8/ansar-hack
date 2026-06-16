@@ -10,7 +10,9 @@ import {
   PatientShowPage,
   AppointmentsListPage,
   LeadsPage,
+  SchedulePage,
   NotificationTemplatesPage,
+  AssistantPage,
   LoginPage,
   NotFoundPage,
 } from "@/pages";
@@ -39,7 +41,9 @@ export function AppRouter() {
 
         <Route path="/appointments" element={<AppointmentsListPage />} />
         <Route path="/leads" element={<LeadsPage />} />
+        <Route path="/schedule" element={<SchedulePage />} />
         <Route path="/notifications/templates" element={<NotificationTemplatesPage />} />
+        <Route path="/assistant" element={<AssistantPage />} />
 
         <Route path="*" element={<NotFoundPage />} />
       </Route>

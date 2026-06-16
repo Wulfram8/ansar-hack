@@ -5,7 +5,7 @@ from rest_framework.authtoken.views import obtain_auth_token
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 from accounts.views import UserViewSet
-from patients.views import PatientViewSet
+from patients.views import PatientViewSet, PatientSourceViewSet, PatientTagViewSet
 from leads.views import LeadViewSet
 from appointments.views import AppointmentViewSet
 from notifications.views import (
@@ -17,6 +17,8 @@ from notifications.views import (
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
 router.register(r'patients', PatientViewSet, basename='patient')
+router.register(r'patient-sources', PatientSourceViewSet, basename='patient-source')
+router.register(r'patient-tags', PatientTagViewSet, basename='patient-tag')
 router.register(r'leads', LeadViewSet, basename='lead')
 router.register(r'appointments', AppointmentViewSet, basename='appointment')
 router.register(r'notifications/templates', NotificationTemplateViewSet, basename='notification-template')
@@ -26,6 +28,9 @@ router.register(r'notifications/scheduled', ScheduledNotificationViewSet, basena
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
+    path('api/analytics/', include('analytics.urls')),
+    path('api/schedules/', include('schedules.urls')),
+    path('api/assistant/', include('ai_assistant.urls')),
     path('api/auth-token/', obtain_auth_token, name='api_token_auth'),
     
     # Swagger API Documentation
