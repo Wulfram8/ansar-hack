@@ -22,6 +22,7 @@ data class ProfileResponse(
     val id: String,
     @SerializedName("first_name") val firstName: String,
     @SerializedName("last_name") val lastName: String,
+    @SerializedName("birth_date") val birthDate: String? = null,
     val gender: String,
     val phone: String,
 )
@@ -29,7 +30,24 @@ data class ProfileResponse(
 data class ProfileUpdateRequest(
     @SerializedName("first_name") val firstName: String,
     @SerializedName("last_name") val lastName: String,
+    @SerializedName("birth_date") val birthDate: String? = null,
     val gender: String = "",
+)
+
+// ── Leads ─────────────────────────────────────────────────────────────
+
+data class CreateLeadRequest(
+    @SerializedName("first_name") val firstName: String,
+    @SerializedName("last_name") val lastName: String = "",
+    val phone: String,
+    val email: String = "",
+    val notes: String = "",
+    val channel: String = "OTHER",
+)
+
+data class CreateLeadResponse(
+    @SerializedName("first_name") val firstName: String = "",
+    val phone: String = "",
 )
 
 // ── Doctors ──────────────────────────────────────────────────────────

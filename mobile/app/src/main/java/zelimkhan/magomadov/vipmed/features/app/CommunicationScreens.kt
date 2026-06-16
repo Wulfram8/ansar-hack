@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -68,8 +71,11 @@ fun ChatScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(10.dp),
+                    .navigationBarsPadding()
+                    .imePadding()
+                    .padding(horizontal = 10.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = {}) {
                     Icon(imageVector = Icons.Rounded.AttachFile, contentDescription = null)
@@ -270,7 +276,7 @@ private fun MessageBubble(
         horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start,
     ) {
         Card(
-            modifier = Modifier.fillMaxWidth(0.76f),
+            modifier = Modifier.widthIn(max = 280.dp),
             colors = CardDefaults.cardColors(
                 containerColor = if (isMine) {
                     MaterialTheme.colorScheme.primaryContainer

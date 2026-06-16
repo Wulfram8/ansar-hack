@@ -3,6 +3,7 @@ from patients.models import Patient
 from accounts.models import Doctor, User
 from appointments.models import Appointment, Service
 from leads.models import Lead
+from core.phone import normalize_phone
 from communications.models import DoctorChat, DoctorChatMessage
 from notifications.models import PatientNotification
 
@@ -22,10 +23,12 @@ class VerifyOtpSerializer(serializers.Serializer):
 
 class ClientProfileSerializer(serializers.ModelSerializer):
     phone = serializers.CharField(read_only=True)
+    # Дата рождения — отдельное поле анкеты (раньше ошибочно писалась в last_name).
+    birth_date = serializers.DateField(required=False, allow_null=True)
 
     class Meta:
         model = Patient
-        fields = ['id', 'first_name', 'last_name', 'gender', 'phone']
+        fields = ['id', 'first_name', 'last_name', 'birth_date', 'gender', 'phone']
 
 
 # ── Doctors ───────────────────────────────────────────────────────────
@@ -66,7 +69,13 @@ class ServiceBriefSerializer(serializers.ModelSerializer):
 
 
 class ClientAppointmentCreateSerializer(serializers.ModelSerializer):
-    """Write-only serializer for creating appointments from the client app."""
+    """Write-only serializer for creating appointments from the client app.
+
+    Клиент присылает id профиля врача (Doctor), а Appointment.doctor ссылается
+    на User — поэтому принимаем Doctor и подставляем его user.
+    """
+    doctor = serializers.PrimaryKeyRelatedField(queryset=Doctor.objects.all())
+    end_time = serializers.TimeField(required=False)
 
     class Meta:
         model = Appointment
@@ -79,6 +88,20 @@ class ClientAppointmentCreateSerializer(serializers.ModelSerializer):
         # patient is always set from the authenticated user
         patient = self.context['request'].user.patient_profile
         validated_data['patient'] = patient
+
+        # doctor приходит как профиль Doctor -> сохраняем связанного пользователя
+        doctor_profile = validated_data.pop('doctor')
+        validated_data['doctor'] = doctor_profile.user
+
+        # если время окончания не передали — считаем по длительности услуги
+        if not validated_data.get('end_time'):
+            from datetime import datetime, timedelta
+            start = validated_data['start_time']
+            service = validated_data.get('service')
+            duration = getattr(service, 'duration_min', 30) or 30
+            end_dt = datetime.combine(datetime.today(), start) + timedelta(minutes=duration)
+            validated_data['end_time'] = end_dt.time()
+
         return super().create(validated_data)
 
 
@@ -129,6 +152,9 @@ class ClientLeadSerializer(serializers.ModelSerializer):
             'notes', 'channel',
         ]
 
+    def validate_phone(self, value):
+        # Сохраняем телефон заявки в каноническом виде — для дедупликации.
+        return normalize_phone(value) or value
 
 # ── Doctor Chat ───────────────────────────────────────────────────────
 

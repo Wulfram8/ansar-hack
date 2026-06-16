@@ -41,13 +41,34 @@ data class ProfileSetupState(
     val status: ScreenStatus = ScreenStatus.Success,
     val firstName: String = "",
     val lastName: String = "",
+    val birthDate: String = "",
     val isLoading: Boolean = false,
+    val error: String? = null,
 )
 sealed class ProfileSetupEvent {
     data class FirstNameChanged(val name: String) : ProfileSetupEvent()
     data class LastNameChanged(val name: String) : ProfileSetupEvent()
+    data class BirthDateChanged(val date: String) : ProfileSetupEvent()
     data object SaveClick : ProfileSetupEvent()
     data object BackClick : ProfileSetupEvent()
+}
+
+data class LeadRequestState(
+    val status: ScreenStatus = ScreenStatus.Success,
+    val name: String = "",
+    val phone: String = "",
+    val comment: String = "",
+    val isLoading: Boolean = false,
+    val isSubmitted: Boolean = false,
+    val error: String? = null,
+)
+sealed class LeadRequestEvent {
+    data class NameChanged(val name: String) : LeadRequestEvent()
+    data class PhoneChanged(val phone: String) : LeadRequestEvent()
+    data class CommentChanged(val comment: String) : LeadRequestEvent()
+    data object SubmitClick : LeadRequestEvent()
+    data object BackClick : LeadRequestEvent()
+    data object DoneClick : LeadRequestEvent()
 }
 
 data class HomeState(
@@ -58,6 +79,7 @@ data class HomeState(
 )
 sealed class HomeEvent {
     data object BookClick : HomeEvent()
+    data object RequestCallClick : HomeEvent()
     data object AvatarClick : HomeEvent()
     data object ChatClick : HomeEvent()
     data object NotificationsClick : HomeEvent()
@@ -190,6 +212,7 @@ data class VipMedState(
     val auth: AuthState = AuthState(),
     val otp: OtpState = OtpState(),
     val profileSetup: ProfileSetupState = ProfileSetupState(),
+    val leadRequest: LeadRequestState = LeadRequestState(),
     val home: HomeState = HomeState(),
     val booking: BookingState = BookingState(),
     val appointments: AppointmentsState = AppointmentsState(),

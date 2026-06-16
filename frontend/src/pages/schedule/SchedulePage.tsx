@@ -144,7 +144,7 @@ export function SchedulePage() {
       : monthLabel;
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex min-h-full flex-col gap-4">
       {/* Заголовок */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">

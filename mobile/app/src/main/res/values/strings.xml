@@ -143,4 +143,19 @@
     <string name="nav_doctors">Врачи</string>
     <string name="nav_chat">Чат</string>
     <string name="nav_profile">Профиль</string>
+    <string name="firstname_label">Имя</string>
+    <string name="lastname_label">Фамилия</string>
+    <string name="birthday_hint">Выберите дату</string>
+    <string name="lead_request_title">Заявка на консультацию</string>
+    <string name="lead_request_headline">Оставьте заявку</string>
+    <string name="lead_request_subtitle">Перезвоним и поможем подобрать врача и удобное время.</string>
+    <string name="lead_name_label">Ваше имя</string>
+    <string name="lead_phone_label">Телефон</string>
+    <string name="lead_comment_label">Комментарий (необязательно)</string>
+    <string name="lead_submit_action">Отправить заявку</string>
+    <string name="lead_success_title">Заявка отправлена</string>
+    <string name="lead_success_subtitle">Мы свяжемся с вами в ближайшее время.</string>
+    <string name="lead_request_quick">Заказать звонок</string>
+    <string name="lead_request_quick_sub">Перезвоним вам</string>
+    <string name="lead_error_required">Укажите имя и телефон</string>
 </resources>

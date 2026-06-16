@@ -17,8 +17,10 @@ export interface NavItem {
   icon: LucideIcon;
   /** Маршрут. Если не задан — пункт показывается, но пока не реализован. */
   to?: string;
-  /** Числовой бейдж справа от пункта. */
+  /** Числовой бейдж справа от пункта (статичный). */
   badge?: number;
+  /** Ключ живого счётчика — значение бейджа берётся из данных в Sidebar. */
+  badgeKey?: "appointmentsToday" | "newLeads";
 }
 
 export interface NavSection {
@@ -36,15 +38,15 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { to: "/", label: "Дашборд", icon: LayoutDashboard },
       { to: "/patients", label: "Пациенты", icon: Users },
-      { to: "/appointments", label: "Записи", icon: CalendarCheck, badge: 24 },
+      { to: "/appointments", label: "Записи", icon: CalendarCheck, badgeKey: "appointmentsToday" },
       { to: "/schedule", label: "Расписание врачей", icon: CalendarDays },
-      { to: "/leads", label: "Лиды", icon: UserPlus, badge: 7 },
-      { to: "/notifications/templates", label: "Коммуникации", icon: MessageSquare },
+      { to: "/leads", label: "Лиды", icon: UserPlus, badgeKey: "newLeads" },
     ],
   },
   {
     title: "Автоматизация",
     items: [
+      { to: "/notifications/templates", label: "Шаблоны уведомлений", icon: MessageSquare },
       { to: "/notifications", label: "Уведомления", icon: Bell },
       { to: "/assistant", label: "AI Ассистент", icon: Sparkles },
     ],

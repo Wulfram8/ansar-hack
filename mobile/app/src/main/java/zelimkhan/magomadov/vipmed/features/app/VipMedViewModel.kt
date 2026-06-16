@@ -137,11 +137,15 @@ class VipMedViewModel(
         when (event) {
             ProfileSetupEvent.BackClick -> navigateBack()
             is ProfileSetupEvent.FirstNameChanged -> _state.update {
-                it.copy(profileSetup = it.profileSetup.copy(firstName = event.name))
+                it.copy(profileSetup = it.profileSetup.copy(firstName = event.name, error = null))
             }
 
             is ProfileSetupEvent.LastNameChanged -> _state.update {
-                it.copy(profileSetup = it.profileSetup.copy(lastName = event.name))
+                it.copy(profileSetup = it.profileSetup.copy(lastName = event.name, error = null))
+            }
+
+            is ProfileSetupEvent.BirthDateChanged -> _state.update {
+                it.copy(profileSetup = it.profileSetup.copy(birthDate = event.date, error = null))
             }
 
             ProfileSetupEvent.SaveClick -> saveProfile()
@@ -150,9 +154,18 @@ class VipMedViewModel(
 
     private fun saveProfile() {
         val setup = _state.value.profileSetup
-        if (setup.firstName.isBlank() || setup.lastName.isBlank()) return
+        if (setup.firstName.isBlank() || setup.lastName.isBlank() || setup.birthDate.isBlank()) {
+            _state.update {
+                it.copy(
+                    profileSetup = it.profileSetup.copy(
+                        error = "Заполните имя, фамилию и дату рождения",
+                    )
+                )
+            }
+            return
+        }
 
-        _state.update { it.copy(profileSetup = it.profileSetup.copy(isLoading = true)) }
+        _state.update { it.copy(profileSetup = it.profileSetup.copy(isLoading = true, error = null)) }
 
         viewModelScope.launch {
             try {
@@ -160,13 +173,19 @@ class VipMedViewModel(
                     ProfileUpdateRequest(
                         firstName = setup.firstName.trim(),
                         lastName = setup.lastName.trim(),
+                        birthDate = setup.birthDate,
                     )
                 )
                 _state.update { it.copy(profileSetup = it.profileSetup.copy(isLoading = false)) }
                 navigate(route = VipMedRoute.Home.route, clearBackStack = true)
             } catch (e: Exception) {
                 _state.update {
-                    it.copy(profileSetup = it.profileSetup.copy(isLoading = false))
+                    it.copy(
+                        profileSetup = it.profileSetup.copy(
+                            isLoading = false,
+                            error = "Не удалось сохранить. Попробуйте снова.",
+                        )
+                    )
                 }
             }
         }
@@ -178,6 +197,7 @@ class VipMedViewModel(
         when (event) {
             HomeEvent.AvatarClick -> navigate(route = VipMedRoute.Profile.route)
             HomeEvent.BookClick -> navigate(route = VipMedRoute.BookingService.route)
+            HomeEvent.RequestCallClick -> navigate(route = VipMedRoute.LeadRequest.route)
             HomeEvent.ChatClick -> navigate(route = VipMedRoute.Chat.route)
             HomeEvent.LabResultsClick -> navigate(route = VipMedRoute.LabResults.route)
             HomeEvent.NotificationsClick -> navigate(route = VipMedRoute.Notifications.route)
@@ -219,12 +239,28 @@ class VipMedViewModel(
         when (event) {
             BookingEvent.BackClick -> navigateBack()
             BookingEvent.ConfirmClick -> createAppointment()
-            BookingEvent.DateNextClick -> navigate(route = VipMedRoute.BookingConfirm.route)
-            BookingEvent.DoctorNextClick -> navigate(route = VipMedRoute.BookingDateTime.route)
-            BookingEvent.DoneClick -> navigate(
-                route = VipMedRoute.Appointments.route,
-                clearBackStack = true,
-            )
+            BookingEvent.DateNextClick -> {
+                val b = _state.value.booking
+                if (b.selectedDate.isNotBlank() && b.selectedTime.isNotBlank()) {
+                    navigate(route = VipMedRoute.BookingConfirm.route)
+                } else {
+                    showMessage("Выберите дату и время")
+                }
+            }
+            BookingEvent.DoctorNextClick -> {
+                if (_state.value.booking.selectedDoctor != null) {
+                    navigate(route = VipMedRoute.BookingDateTime.route)
+                } else {
+                    showMessage("Выберите врача")
+                }
+            }
+            BookingEvent.DoneClick -> {
+                _state.update { it.copy(booking = BookingState(status = ScreenStatus.Success)) }
+                navigate(
+                    route = VipMedRoute.Appointments.route,
+                    clearBackStack = true,
+                )
+            }
 
             BookingEvent.ServiceNextClick -> {
                 if (_state.value.booking.selectedService != null) {
@@ -296,6 +332,10 @@ class VipMedViewModel(
         val booking = _state.value.booking
         val doctor = booking.selectedDoctor ?: return
         val service = booking.selectedService ?: return
+        if (booking.selectedDate.isBlank() || booking.selectedTime.isBlank()) {
+            showMessage("Выберите дату и время")
+            return
+        }
 
         _state.update { it.copy(booking = it.booking.copy(isLoading = true)) }
 
@@ -304,9 +344,9 @@ class VipMedViewModel(
                 apiService.createAppointment(
                     CreateAppointmentRequest(
                         doctor = doctor.id,
-                        date = booking.selectedDate.ifEmpty { "2026-06-20" },
-                        startTime = booking.selectedTime.ifEmpty { "09:30" },
-                        endTime = booking.selectedTime.ifEmpty { "10:00" },
+                        date = booking.selectedDate,
+                        startTime = booking.selectedTime,
+                        endTime = computeEndTime(booking.selectedTime, service.durationMin),
                         service = service.id,
                     )
                 )
@@ -316,7 +356,17 @@ class VipMedViewModel(
                 _state.update {
                     it.copy(booking = it.booking.copy(isLoading = false))
                 }
+                showMessage("Не удалось создать запись. Попробуйте снова.")
             }
+        }
+    }
+
+    private fun computeEndTime(start: String, durationMin: Int): String {
+        return try {
+            val duration = if (durationMin > 0) durationMin else 30
+            java.time.LocalTime.parse(start).plusMinutes(duration.toLong()).toString().take(5)
+        } catch (e: Exception) {
+            start
         }
     }
 
@@ -465,11 +515,29 @@ class VipMedViewModel(
     }
 
     fun loadChatForAppointment() {
-        val appointmentId = _state.value.chat.appointmentId ?: return
-
         viewModelScope.launch {
             try {
-                val chatDetail = apiService.getChatByAppointment(appointmentId)
+                val appointmentId = _state.value.chat.appointmentId
+                val chatDetail = if (appointmentId != null) {
+                    apiService.getChatByAppointment(appointmentId)
+                } else {
+                    // Чат открыт из нижней навигации без конкретной записи —
+                    // показываем последний диалог, либо пустой экран.
+                    val rooms = apiService.getChatList()
+                    val latest = rooms.firstOrNull()
+                    if (latest == null) {
+                        _state.update {
+                            it.copy(
+                                chat = it.chat.copy(
+                                    status = ScreenStatus.Success,
+                                    messages = emptyList(),
+                                )
+                            )
+                        }
+                        return@launch
+                    }
+                    apiService.getChatDetail(latest.id)
+                }
                 _state.update {
                     it.copy(
                         chat = it.chat.copy(
@@ -616,7 +684,77 @@ class VipMedViewModel(
         }
     }
 
+    // ── Lead request (заявка на звонок) ──────────────────────────────
+
+    fun onLeadRequestEvent(event: LeadRequestEvent) {
+        when (event) {
+            LeadRequestEvent.BackClick -> navigateBack()
+            is LeadRequestEvent.NameChanged -> _state.update {
+                it.copy(leadRequest = it.leadRequest.copy(name = event.name, error = null))
+            }
+            is LeadRequestEvent.PhoneChanged -> _state.update {
+                it.copy(leadRequest = it.leadRequest.copy(phone = event.phone, error = null))
+            }
+            is LeadRequestEvent.CommentChanged -> _state.update {
+                it.copy(leadRequest = it.leadRequest.copy(comment = event.comment))
+            }
+            LeadRequestEvent.SubmitClick -> submitLead()
+            LeadRequestEvent.DoneClick -> {
+                _state.update { it.copy(leadRequest = LeadRequestState()) }
+                navigateBack()
+            }
+        }
+    }
+
+    private fun submitLead() {
+        val lead = _state.value.leadRequest
+        if (lead.name.isBlank() || lead.phone.isBlank()) {
+            _state.update {
+                it.copy(leadRequest = it.leadRequest.copy(error = "Укажите имя и телефон"))
+            }
+            return
+        }
+
+        _state.update { it.copy(leadRequest = it.leadRequest.copy(isLoading = true, error = null)) }
+
+        viewModelScope.launch {
+            try {
+                apiService.createLead(
+                    CreateLeadRequest(
+                        firstName = lead.name.trim(),
+                        phone = lead.phone.trim(),
+                        notes = lead.comment.trim(),
+                        channel = "OTHER",
+                    )
+                )
+                _state.update {
+                    it.copy(
+                        leadRequest = it.leadRequest.copy(
+                            isLoading = false,
+                            isSubmitted = true,
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(
+                        leadRequest = it.leadRequest.copy(
+                            isLoading = false,
+                            error = "Не удалось отправить заявку. Попробуйте снова.",
+                        )
+                    )
+                }
+            }
+        }
+    }
+
     // ── Navigation helpers ───────────────────────────────────────────
+
+    private fun showMessage(message: String) {
+        viewModelScope.launch {
+            _event.send(VipMedEvent.ShowMessage(message = message))
+        }
+    }
 
     private fun navigate(route: String, clearBackStack: Boolean = false) {
         viewModelScope.launch {

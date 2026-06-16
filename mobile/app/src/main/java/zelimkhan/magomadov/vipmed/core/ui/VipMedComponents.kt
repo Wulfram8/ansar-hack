@@ -137,9 +137,7 @@ fun VipBottomBar(
     val items = listOf(
         BottomNavItem(VipMedRoute.Home.route, labels[0], Icons.Rounded.Home),
         BottomNavItem(VipMedRoute.Appointments.route, labels[1], Icons.Rounded.CalendarMonth),
-        BottomNavItem(VipMedRoute.Doctors.route, labels[2], Icons.Rounded.MedicalServices),
-        BottomNavItem(VipMedRoute.Chat.route, labels[3], Icons.Rounded.ChatBubble),
-        BottomNavItem(VipMedRoute.Profile.route, labels[4], Icons.Rounded.Person),
+        BottomNavItem(VipMedRoute.Profile.route, labels[2], Icons.Rounded.Person),
     )
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -340,9 +338,10 @@ fun InfoChip(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     color: Color = MaterialTheme.colorScheme.secondaryContainer,
+    onClick: (() -> Unit)? = null,
 ) {
     Surface(
-        modifier = modifier,
+        modifier = if (onClick != null) modifier.clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick) else modifier,
         shape = RoundedCornerShape(14.dp),
         color = color,
     ) {
@@ -470,6 +469,7 @@ fun ListCard(
     leadingIcon: ImageVector = Icons.Rounded.MedicalServices,
     trailingText: String? = null,
     onClick: (() -> Unit)? = null,
+    selected: Boolean = false,
 ) {
     Card(
         modifier = modifier
@@ -483,11 +483,19 @@ fun ListCard(
             ),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            containerColor = if (selected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerLow
+            },
         ),
         border = BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
+            width = if (selected) 1.5.dp else 1.dp,
+            color = if (selected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+            },
         ),
     ) {
         Row(
@@ -552,6 +560,7 @@ fun DoctorCard(
     rating: String,
     action: String,
     modifier: Modifier = Modifier,
+    selected: Boolean = false,
     onClick: () -> Unit,
 ) {
     Card(
@@ -560,8 +569,17 @@ fun DoctorCard(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            containerColor = if (selected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerLow
+            },
         ),
+        border = if (selected) {
+            BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+        } else {
+            null
+        },
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -600,6 +618,16 @@ fun DoctorCard(
     }
 }
 
+/** Локализация статуса записи на русский. */
+fun appointmentStatusLabelRu(status: String): String = when (status.uppercase()) {
+    "CREATED" -> "Создана"
+    "CONFIRMED" -> "Подтверждена"
+    "COMPLETED" -> "Завершена"
+    "CANCELLED", "CANCELED" -> "Отменена"
+    "NO_SHOW" -> "Неявка"
+    else -> status
+}
+
 @Composable
 fun AppointmentCard(
     title: String,
@@ -628,7 +656,7 @@ fun AppointmentCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 InfoChip(
-                    text = status,
+                    text = appointmentStatusLabelRu(status),
                     icon = Icons.Rounded.CheckCircle,
                     color = MaterialTheme.colorScheme.primaryContainer,
                 )

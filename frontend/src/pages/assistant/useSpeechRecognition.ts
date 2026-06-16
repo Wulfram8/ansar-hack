@@ -33,33 +33,37 @@ function getCtor(): SpeechRecognitionCtor | null {
 
 interface Options {
   lang?: string;
-  /** Финальный распознанный фрагмент текста. */
-  onResult: (text: string) => void;
   onError?: (error: string) => void;
 }
 
 /**
  * Голосовой ввод через браузерный Web Speech API.
- * Возвращает {supported, listening, toggle, start, stop}.
+ * Хранит распознанный текст (final) и текущую гипотезу (interim),
+ * чтобы показывать их в реальном времени.
  */
-export function useSpeechRecognition({ lang = "ru-RU", onResult, onError }: Options) {
+export function useSpeechRecognition({ lang = "ru-RU", onError }: Options = {}) {
   const [supported] = useState(() => getCtor() != null);
   const [listening, setListening] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [interim, setInterim] = useState("");
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-  const onResultRef = useRef(onResult);
   const onErrorRef = useRef(onError);
-  onResultRef.current = onResult;
   onErrorRef.current = onError;
 
   const stop = useCallback(() => {
     recognitionRef.current?.stop();
     setListening(false);
+    setInterim("");
+  }, []);
+
+  const reset = useCallback(() => {
+    setTranscript("");
+    setInterim("");
   }, []);
 
   const start = useCallback(() => {
     const Ctor = getCtor();
     if (!Ctor) return;
-    // Останавливаем предыдущую сессию, если была.
     recognitionRef.current?.abort();
 
     const rec = new Ctor();
@@ -69,17 +73,23 @@ export function useSpeechRecognition({ lang = "ru-RU", onResult, onError }: Opti
 
     rec.onresult = (e) => {
       let final = "";
+      let live = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const res = e.results[i];
         if (res.isFinal) final += res[0].transcript;
+        else live += res[0].transcript;
       }
-      if (final.trim()) onResultRef.current(final.trim());
+      if (final) setTranscript((prev) => (prev ? `${prev} ${final.trim()}` : final.trim()));
+      setInterim(live);
     };
     rec.onerror = (e) => {
       setListening(false);
       onErrorRef.current?.(e.error);
     };
-    rec.onend = () => setListening(false);
+    rec.onend = () => {
+      setListening(false);
+      setInterim("");
+    };
 
     recognitionRef.current = rec;
     try {
@@ -90,12 +100,7 @@ export function useSpeechRecognition({ lang = "ru-RU", onResult, onError }: Opti
     }
   }, [lang]);
 
-  const toggle = useCallback(() => {
-    if (listening) stop();
-    else start();
-  }, [listening, start, stop]);
-
   useEffect(() => () => recognitionRef.current?.abort(), []);
 
-  return { supported, listening, start, stop, toggle };
+  return { supported, listening, transcript, interim, setTranscript, start, stop, reset };
 }

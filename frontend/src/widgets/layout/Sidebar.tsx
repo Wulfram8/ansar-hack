@@ -1,9 +1,20 @@
 import { NavLink } from "react-router-dom";
-import { useGetIdentity } from "@refinedev/core";
+import { useGetIdentity, useList } from "@refinedev/core";
 import { Activity } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { Avatar } from "@/shared/ui";
 import { NAV_SECTIONS, type NavItem } from "./navigation";
+
+// Все маршруты меню — чтобы понять, является ли пункт «родителем» другого.
+const NAV_PATHS = NAV_SECTIONS.flatMap(
+  (s) => s.items.map((i) => i.to).filter(Boolean) as string[],
+);
+
+// Точное совпадение нужно для корня и для родительских путей
+// (например, /notifications не должен подсвечиваться на /notifications/templates).
+function isExactNav(to: string): boolean {
+  return to === "/" || NAV_PATHS.some((p) => p !== to && p.startsWith(to + "/"));
+}
 
 interface Identity {
   username?: string;
@@ -19,12 +30,12 @@ function NavBadge({ value }: { value: number }) {
   );
 }
 
-function NavRow({ item }: { item: NavItem }) {
+function NavRow({ item, badge }: { item: NavItem; badge?: number }) {
   const inner = (
     <>
       <item.icon className="h-4 w-4 shrink-0" />
       <span className="truncate">{item.label}</span>
-      {item.badge != null && <NavBadge value={item.badge} />}
+      {badge != null && badge > 0 && <NavBadge value={badge} />}
     </>
   );
 
@@ -32,7 +43,7 @@ function NavRow({ item }: { item: NavItem }) {
     return (
       <NavLink
         to={item.to}
-        end={item.to === "/"}
+        end={isExactNav(item.to)}
         className={({ isActive }) =>
           cn(
             "flex items-center gap-2.5 rounded-md px-2 py-2 text-sm font-medium transition-colors",
@@ -57,8 +68,32 @@ function NavRow({ item }: { item: NavItem }) {
   );
 }
 
+function localTodayIso(): string {
+  const d = new Date();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${month}-${day}`;
+}
+
 export function Sidebar() {
   const { data: identity } = useGetIdentity<Identity>();
+
+  // Живые счётчики для бейджей бокового меню.
+  const { data: appointmentsToday } = useList({
+    resource: "appointments",
+    filters: [{ field: "date", operator: "eq", value: localTodayIso() }],
+    pagination: { mode: "off" },
+  });
+  const { data: newLeads } = useList({
+    resource: "leads",
+    filters: [{ field: "status", operator: "eq", value: "NEW" }],
+    pagination: { mode: "off" },
+  });
+
+  const badges: Record<NonNullable<NavItem["badgeKey"]>, number | undefined> = {
+    appointmentsToday: appointmentsToday?.total,
+    newLeads: newLeads?.total,
+  };
 
   const userName =
     [identity?.last_name, identity?.first_name].filter(Boolean).join(" ") ||
@@ -93,7 +128,10 @@ export function Sidebar() {
             <ul className="space-y-0.5">
               {section.items.map((item) => (
                 <li key={item.label}>
-                  <NavRow item={item} />
+                  <NavRow
+                    item={item}
+                    badge={item.badgeKey ? badges[item.badgeKey] : item.badge}
+                  />
                 </li>
               ))}
             </ul>

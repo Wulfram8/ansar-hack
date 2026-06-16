@@ -24,6 +24,7 @@ import androidx.compose.material.icons.rounded.MedicalServices
 import androidx.compose.material.icons.rounded.MonitorHeart
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Phone
 import androidx.compose.material.icons.rounded.Science
 import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Settings
@@ -171,6 +172,14 @@ fun HomeScreen(
                         }
                     }
                     item {
+                        ListCard(
+                            title = stringResource(R.string.lead_request_quick),
+                            subtitle = stringResource(R.string.lead_request_quick_sub),
+                            leadingIcon = Icons.Rounded.Phone,
+                            onClick = { onEvent(HomeEvent.RequestCallClick) },
+                        )
+                    }
+                    item {
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             MetricCard(
                                 title = stringResource(R.string.heart_rate),
@@ -232,6 +241,7 @@ fun AppointmentsScreen(
                         } else {
                             MaterialTheme.colorScheme.surfaceContainerHighest
                         },
+                        onClick = { onEvent(AppointmentsEvent.PeriodChanged(period = "future")) },
                     )
                     InfoChip(
                         text = stringResource(R.string.past),
@@ -240,6 +250,7 @@ fun AppointmentsScreen(
                         } else {
                             MaterialTheme.colorScheme.surfaceContainerHighest
                         },
+                        onClick = { onEvent(AppointmentsEvent.PeriodChanged(period = "past")) },
                     )
                 }
             }

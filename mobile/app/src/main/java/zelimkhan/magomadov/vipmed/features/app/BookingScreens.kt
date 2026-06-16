@@ -24,6 +24,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -94,6 +95,7 @@ fun BookingServiceScreen(
                                 "${service.priceKopecks / 100} ₽"
                             } else null,
                             onClick = { onEvent(BookingEvent.ServiceSelected(service)) },
+                            selected = state.selectedService?.id == service.id,
                         )
                     }
                 }
@@ -151,6 +153,7 @@ fun BookingDoctorScreen(
                             specialty = doctor.specialty,
                             rating = "4.9",
                             action = stringResource(R.string.choose_action),
+                            selected = state.selectedDoctor?.id == doctor.id,
                             onClick = { onEvent(BookingEvent.DoctorSelected(doctor)) },
                         )
                     }
@@ -176,50 +179,59 @@ fun BookingDateTimeScreen(
         item { StepChips(activeStep = 2) }
         item { SectionHeader(title = stringResource(R.string.choose_date_time)) }
         item {
+            val dateOptions = remember {
+                val today = java.time.LocalDate.now()
+                (0..2).map { offset ->
+                    val d = today.plusDays(offset.toLong())
+                    val label = when (offset) {
+                        0 -> "Сегодня"
+                        1 -> "Завтра"
+                        else -> "%02d.%02d".format(d.dayOfMonth, d.monthValue)
+                    }
+                    label to d.toString()
+                }
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                InfoChip(
-                    text = stringResource(R.string.date_today),
-                    icon = Icons.Rounded.CalendarMonth,
-                    color = if (state.selectedDate == "today") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
-                )
-                InfoChip(
-                    text = stringResource(R.string.date_tomorrow),
-                    icon = Icons.Rounded.CalendarMonth,
-                    color = if (state.selectedDate == "tomorrow") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
-                )
-                InfoChip(
-                    text = stringResource(R.string.date_after),
-                    icon = Icons.Rounded.CalendarMonth,
-                    color = if (state.selectedDate == "after") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
-                )
+                dateOptions.forEach { (label, iso) ->
+                    InfoChip(
+                        text = label,
+                        icon = Icons.Rounded.CalendarMonth,
+                        color = if (state.selectedDate == iso) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surfaceContainerHighest
+                        },
+                        onClick = { onEvent(BookingEvent.DateSelected(iso)) },
+                    )
+                }
             }
         }
         item {
+            val timeOptions = listOf("09:30", "12:00", "18:30")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                InfoChip(
-                    text = stringResource(R.string.time_morning),
-                    icon = Icons.Rounded.Schedule,
-                    color = if (state.selectedTime == "09:30") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
-                )
-                InfoChip(
-                    text = stringResource(R.string.time_day),
-                    icon = Icons.Rounded.Schedule,
-                    color = if (state.selectedTime == "13:00") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
-                )
-                InfoChip(
-                    text = stringResource(R.string.time_evening),
-                    icon = Icons.Rounded.Schedule,
-                    color = if (state.selectedTime == "17:00") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
-                )
+                timeOptions.forEach { time ->
+                    InfoChip(
+                        text = time,
+                        icon = Icons.Rounded.Schedule,
+                        color = if (state.selectedTime == time) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surfaceContainerHighest
+                        },
+                        onClick = { onEvent(BookingEvent.TimeSelected(time)) },
+                    )
+                }
             }
         }
         item {
+            val dateLabel = when (state.selectedDate) {
+                "" -> "Дата не выбрана"
+                java.time.LocalDate.now().toString() -> "Сегодня"
+                java.time.LocalDate.now().plusDays(1).toString() -> "Завтра"
+                else -> state.selectedDate
+            }
             GradientPanel(
-                title = if (state.selectedDoctor != null) {
-                    "${state.selectedDate.ifEmpty { "Сегодня" }} ${state.selectedTime.ifEmpty { "09:30" }}"
-                } else {
-                    stringResource(R.string.visit_time)
-                },
+                title = "$dateLabel ${state.selectedTime.ifEmpty { "— выберите время" }}",
                 subtitle = state.selectedDoctor?.let {
                     "${it.lastName} ${it.firstName}".trim()
                 } ?: stringResource(R.string.doctor_ivanova),

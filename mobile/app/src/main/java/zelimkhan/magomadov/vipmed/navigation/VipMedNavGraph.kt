@@ -6,11 +6,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.runtime.Composable
+import android.widget.Toast
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -42,6 +44,7 @@ import zelimkhan.magomadov.vipmed.features.app.DoctorDetailsScreen
 import zelimkhan.magomadov.vipmed.features.app.DoctorsScreen
 import zelimkhan.magomadov.vipmed.features.app.HomeScreen
 import zelimkhan.magomadov.vipmed.features.app.LabResultsScreen
+import zelimkhan.magomadov.vipmed.features.app.LeadRequestScreen
 import zelimkhan.magomadov.vipmed.features.app.NotificationsScreen
 import zelimkhan.magomadov.vipmed.features.app.OnboardingScreen
 import zelimkhan.magomadov.vipmed.features.app.OtpScreen
@@ -58,14 +61,13 @@ fun VipMedNavGraph(
     viewModel: VipMedViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
     val hazeState = rememberHazeState()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val bottomRoutes = setOf(
         VipMedRoute.Home.route,
         VipMedRoute.Appointments.route,
-        VipMedRoute.Doctors.route,
-        VipMedRoute.Chat.route,
         VipMedRoute.Profile.route,
     )
     val showBottomBar = currentRoute in bottomRoutes
@@ -85,7 +87,8 @@ fun VipMedNavGraph(
             )
 
             VipMedEvent.NavigateBack -> navController.popBackStack()
-            is VipMedEvent.ShowMessage -> Unit
+            is VipMedEvent.ShowMessage ->
+                Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -153,6 +156,12 @@ fun VipMedNavGraph(
                 ProfileSetupScreen(
                     state = state.profileSetup,
                     onEvent = viewModel::onProfileSetupEvent,
+                )
+            }
+            composable(route = VipMedRoute.LeadRequest.route) {
+                LeadRequestScreen(
+                    state = state.leadRequest,
+                    onEvent = viewModel::onLeadRequestEvent,
                 )
             }
             composable(route = VipMedRoute.Home.route) {
@@ -259,8 +268,6 @@ fun VipMedNavGraph(
                 labels = listOf(
                     stringResource(R.string.nav_home),
                     stringResource(R.string.nav_appointments),
-                    stringResource(R.string.nav_doctors),
-                    stringResource(R.string.nav_chat),
                     stringResource(R.string.nav_profile),
                 ),
                 onRouteClick = navController::navigateBottomRoute,

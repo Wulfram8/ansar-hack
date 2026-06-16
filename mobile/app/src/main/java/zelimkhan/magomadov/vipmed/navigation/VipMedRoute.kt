@@ -6,6 +6,7 @@ sealed class VipMedRoute(val route: String) {
     data object Auth : VipMedRoute(route = "auth")
     data object Otp : VipMedRoute(route = "otp")
     data object ProfileSetup : VipMedRoute(route = "profile_setup")
+    data object LeadRequest : VipMedRoute(route = "lead_request")
     data object Home : VipMedRoute(route = "home")
     data object BookingService : VipMedRoute(route = "booking_service")
     data object BookingDoctor : VipMedRoute(route = "booking_doctor")

@@ -34,6 +34,12 @@ import {
 import {
   APPOINTMENT_STATUS_LABELS,
 } from "@/entities/appointment";
+import {
+  type LeadStatus,
+  type LeadChannel,
+  LEAD_STATUS_LABELS,
+  LEAD_CHANNEL_LABELS,
+} from "@/entities/lead";
 import { formatMoneyKopecks } from "@/shared/lib/utils";
 import { cn } from "@/shared/lib/utils";
 import { usePatientHistory, type PatientHistory } from "./usePatientHistory";
@@ -464,7 +470,7 @@ function ListTab({ tab, history }: { tab: TabKey; history: PatientHistory }) {
     history.leads.forEach((l) =>
       rows.push({
         key: l.id, icon: UserPlus, color: "#ea580c",
-        title: `Заявка · ${l.channel}`, sub: `${l.status} · ${formatMoneyKopecks(l.estimated_value_kopecks)}`,
+        title: `Заявка · ${LEAD_CHANNEL_LABELS[l.channel as LeadChannel] ?? l.channel}`, sub: `${LEAD_STATUS_LABELS[l.status as LeadStatus] ?? l.status} · ${formatMoneyKopecks(l.estimated_value_kopecks)}`,
         date: fmtDateTime(l.created_at),
       }),
     );

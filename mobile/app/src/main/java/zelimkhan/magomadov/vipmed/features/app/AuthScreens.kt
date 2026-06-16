@@ -1,5 +1,19 @@
 package zelimkhan.magomadov.vipmed.features.app
 
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +25,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.MedicalServices
 import androidx.compose.material3.CircularProgressIndicator
@@ -277,6 +292,7 @@ fun OtpScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileSetupScreen(
     state: ProfileSetupState,
@@ -309,16 +325,28 @@ fun ProfileSetupScreen(
                     value = state.firstName,
                     onValueChange = { onEvent(ProfileSetupEvent.FirstNameChanged(name = it)) },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(text = stringResource(R.string.name_label)) },
+                    label = { Text(text = stringResource(R.string.firstname_label)) },
+                    singleLine = true,
                     shape = RoundedCornerShape(18.dp),
                 )
                 OutlinedTextField(
                     value = state.lastName,
                     onValueChange = { onEvent(ProfileSetupEvent.LastNameChanged(name = it)) },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(text = stringResource(R.string.birthday_label)) },
+                    label = { Text(text = stringResource(R.string.lastname_label)) },
+                    singleLine = true,
                     shape = RoundedCornerShape(18.dp),
                 )
+                BirthDateField(
+                    value = state.birthDate,
+                    onDateSelected = { onEvent(ProfileSetupEvent.BirthDateChanged(date = it)) },
+                )
+                if (state.error != null) {
+                    Text(
+                        text = state.error,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
             if (state.isLoading) {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -330,6 +358,184 @@ fun ProfileSetupScreen(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { onEvent(ProfileSetupEvent.SaveClick) },
                 )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BirthDateField(
+    value: String,
+    onDateSelected: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var showDialog by remember { mutableStateOf(false) }
+    val display = remember(value) { formatBirthDateForDisplay(value) }
+
+    Box(modifier = modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = display,
+            onValueChange = {},
+            readOnly = true,
+            enabled = false,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text(text = stringResource(R.string.birthday_label)) },
+            placeholder = { Text(text = stringResource(R.string.birthday_hint)) },
+            trailingIcon = {
+                Icon(imageVector = Icons.Rounded.CalendarMonth, contentDescription = null)
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(18.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                disabledBorderColor = MaterialTheme.colorScheme.outline,
+                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            ),
+        )
+        // Прозрачный слой-перехватчик клика поверх отключённого поля.
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clip(RoundedCornerShape(18.dp))
+                .clickable { showDialog = true },
+        )
+    }
+
+    if (showDialog) {
+        val datePickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { showDialog = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        onDateSelected(millisToIsoDate(millis))
+                    }
+                    showDialog = false
+                }) {
+                    Text(text = stringResource(R.string.save_action))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text(text = stringResource(R.string.cancel_action))
+                }
+            },
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+}
+
+private fun millisToIsoDate(millis: Long): String {
+    val date = java.time.Instant.ofEpochMilli(millis)
+        .atZone(java.time.ZoneOffset.UTC)
+        .toLocalDate()
+    return date.toString() // ISO: yyyy-MM-dd
+}
+
+private fun formatBirthDateForDisplay(iso: String): String {
+    if (iso.isBlank()) return ""
+    return try {
+        val date = java.time.LocalDate.parse(iso)
+        "%02d.%02d.%04d".format(date.dayOfMonth, date.monthValue, date.year)
+    } catch (e: Exception) {
+        iso
+    }
+}
+
+@Composable
+fun LeadRequestScreen(
+    state: LeadRequestState,
+    onEvent: (LeadRequestEvent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            VipTopBar(
+                title = stringResource(R.string.lead_request_title),
+                onBackClick = { onEvent(LeadRequestEvent.BackClick) },
+            )
+        },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            if (state.isSubmitted) {
+                Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                    GradientPanel(
+                        title = stringResource(R.string.lead_success_title),
+                        subtitle = stringResource(R.string.lead_success_subtitle),
+                        icon = Icons.Rounded.CheckCircle,
+                    )
+                }
+                PrimaryActionButton(
+                    text = stringResource(R.string.ready),
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { onEvent(LeadRequestEvent.DoneClick) },
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(
+                        text = stringResource(R.string.lead_request_headline),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Black,
+                    )
+                    Text(
+                        text = stringResource(R.string.lead_request_subtitle),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    OutlinedTextField(
+                        value = state.name,
+                        onValueChange = { onEvent(LeadRequestEvent.NameChanged(name = it)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(text = stringResource(R.string.lead_name_label)) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(18.dp),
+                    )
+                    OutlinedTextField(
+                        value = state.phone,
+                        onValueChange = { onEvent(LeadRequestEvent.PhoneChanged(phone = it)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(text = stringResource(R.string.lead_phone_label)) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(18.dp),
+                    )
+                    OutlinedTextField(
+                        value = state.comment,
+                        onValueChange = { onEvent(LeadRequestEvent.CommentChanged(comment = it)) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp),
+                        label = { Text(text = stringResource(R.string.lead_comment_label)) },
+                        shape = RoundedCornerShape(18.dp),
+                    )
+                    if (state.error != null) {
+                        Text(
+                            text = state.error,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+                if (state.isLoading) {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    PrimaryActionButton(
+                        text = stringResource(R.string.lead_submit_action),
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onEvent(LeadRequestEvent.SubmitClick) },
+                    )
+                }
             }
         }
     }

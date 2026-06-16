@@ -68,4 +68,9 @@ interface ApiService {
 
     @POST("notifications/mark-read/")
     suspend fun markAllNotificationsRead(): Map<String, String>
+
+    // ── Leads ────────────────────────────────────────────────────────
+
+    @POST("leads/")
+    suspend fun createLead(@Body request: CreateLeadRequest): CreateLeadResponse
 }
