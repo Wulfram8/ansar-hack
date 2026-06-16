@@ -32,11 +32,12 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   appointment?: Appointment | null;
+  defaultPatient?: { id: string; label: string } | null;
 }
 
 const NONE = "__none__";
 
-export function AppointmentFormDialog({ open, onOpenChange, appointment }: Props) {
+export function AppointmentFormDialog({ open, onOpenChange, appointment, defaultPatient }: Props) {
   const isEdit = !!appointment;
   const doctors = useDoctors();
   const services = useServices();
@@ -78,7 +79,9 @@ export function AppointmentFormDialog({ open, onOpenChange, appointment }: Props
       setStatus(appointment.status);
       setComment(appointment.comment ?? "");
     } else {
-      setPatientId(""); setPatientLabel(""); setPatientQuery("");
+      setPatientId(defaultPatient?.id ?? "");
+      setPatientLabel(defaultPatient?.label ?? "");
+      setPatientQuery("");
       setDoctorUserId(doctors[0]?.user ? String(doctors[0].user) : "");
       setService(NONE); setDate(""); setStart("10:00"); setEnd("");
       setCabinet(""); setStatus("CREATED"); setComment("");

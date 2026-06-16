@@ -427,7 +427,8 @@ export function PatientsListPage() {
             patients.map((p) => (
               <div
                 key={p.id}
-                className={cn(ROW_GRID, "h-14 border-b text-sm last:border-b-0 hover:bg-muted/40")}
+                onClick={() => show("patients", p.id)}
+                className={cn(ROW_GRID, "h-14 cursor-pointer border-b text-sm last:border-b-0 hover:bg-muted/40")}
               >
                 {/* ФИО */}
                 <div className="flex min-w-0 items-center gap-2.5">
@@ -474,7 +475,7 @@ export function PatientsListPage() {
                   )}
                 </div>
                 {/* Действия */}
-                <div className="flex justify-end">
+                <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8">

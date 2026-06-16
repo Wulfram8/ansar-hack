@@ -129,7 +129,7 @@ export function EmployeesPage() {
                 </TableRow>
               )}
               {!isLoading && employees.map((e) => (
-                <TableRow key={e.id}>
+                <TableRow key={e.id} onClick={() => { setEditing(e); setDialogOpen(true); }} className="cursor-pointer">
                   <TableCell>
                     <div className="flex items-center gap-2.5">
                       <Avatar initials={initials(e)} size={32} />
@@ -158,7 +158,7 @@ export function EmployeesPage() {
                       <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(ev) => ev.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
