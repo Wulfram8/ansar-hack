@@ -4,6 +4,8 @@ from accounts.models import Doctor, User
 from appointments.models import Appointment, Service
 from leads.models import Lead
 from core.phone import normalize_phone
+from communications.models import DoctorChat, DoctorChatMessage
+from notifications.models import PatientNotification
 
 
 # ── Auth ──────────────────────────────────────────────────────────────
@@ -46,6 +48,14 @@ class DoctorListSerializer(serializers.ModelSerializer):
             'id', 'first_name', 'last_name', 'middle_name',
             'specialty', 'cabinet', 'color_hex',
         ]
+
+
+# ── Services ─────────────────────────────────────────────────────────
+
+class ClientServiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Service
+        fields = ['id', 'title', 'category', 'duration_min', 'price_kopecks', 'color_hex']
 
 
 # ── Appointments ──────────────────────────────────────────────────────
@@ -123,3 +133,53 @@ class ClientLeadSerializer(serializers.ModelSerializer):
     def validate_phone(self, value):
         # Сохраняем телефон заявки в каноническом виде — для дедупликации.
         return normalize_phone(value) or value
+
+# ── Doctor Chat ───────────────────────────────────────────────────────
+
+class DoctorChatMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DoctorChatMessage
+        fields = ['id', 'sender_role', 'content', 'created_at']
+        read_only_fields = ['id', 'sender_role', 'created_at']
+
+
+class DoctorChatSerializer(serializers.ModelSerializer):
+    doctor_name = serializers.SerializerMethodField()
+    last_message = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DoctorChat
+        fields = ['id', 'appointment', 'doctor_name', 'last_message', 'created_at']
+
+    def get_doctor_name(self, obj):
+        return f"{obj.doctor.last_name} {obj.doctor.first_name}"
+
+    def get_last_message(self, obj):
+        msg = obj.messages.last()
+        if msg:
+            return {'content': msg.content, 'sender_role': msg.sender_role, 'created_at': msg.created_at}
+        return None
+
+
+class DoctorChatDetailSerializer(serializers.ModelSerializer):
+    doctor_name = serializers.SerializerMethodField()
+    messages = DoctorChatMessageSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = DoctorChat
+        fields = ['id', 'appointment', 'doctor_name', 'messages', 'created_at']
+
+    def get_doctor_name(self, obj):
+        return f"{obj.doctor.last_name} {obj.doctor.first_name}"
+
+
+class SendChatMessageSerializer(serializers.Serializer):
+    content = serializers.CharField()
+
+
+# ── Notifications ─────────────────────────────────────────────────────
+
+class PatientNotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PatientNotification
+        fields = ['id', 'title', 'body', 'notification_type', 'is_read', 'created_at']

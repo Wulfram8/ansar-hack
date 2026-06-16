@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -20,6 +23,15 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Load base URL from .env file
+        val envFile = rootProject.file(".env")
+        val envProps = Properties()
+        if (envFile.exists()) {
+            envProps.load(FileInputStream(envFile))
+        }
+        val apiBaseUrl = envProps.getProperty("API_BASE_URL", "http://10.0.2.2:8000/api/client/")
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
 
     buildTypes {
@@ -37,6 +49,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -57,6 +70,9 @@ dependencies {
     implementation(libs.koin.androidx.compose)
     implementation(libs.haze)
     implementation(libs.haze.materials)
+    implementation(libs.retrofit.core)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp.logging)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

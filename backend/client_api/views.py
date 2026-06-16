@@ -9,8 +9,10 @@ from rest_framework.authtoken.models import Token
 
 from accounts.models import Doctor, User
 from patients.models import Patient
-from appointments.models import Appointment
+from appointments.models import Appointment, Service
 from leads.models import Lead
+from communications.models import DoctorChat, DoctorChatMessage
+from notifications.models import PatientNotification
 
 from django.db import transaction
 from core.phone import normalize_phone
@@ -25,9 +27,15 @@ from .serializers import (
     VerifyOtpSerializer,
     ClientProfileSerializer,
     DoctorListSerializer,
+    ClientServiceSerializer,
     ClientAppointmentCreateSerializer,
     ClientAppointmentListSerializer,
     ClientLeadSerializer,
+    DoctorChatSerializer,
+    DoctorChatDetailSerializer,
+    DoctorChatMessageSerializer,
+    SendChatMessageSerializer,
+    PatientNotificationSerializer,
 )
 
 HARDCODED_OTP = '333333'
@@ -152,6 +160,15 @@ class DoctorDetailView(generics.RetrieveAPIView):
     queryset = Doctor.objects.select_related('user').all()
 
 
+# ── Services ─────────────────────────────────────────────────────────
+
+class ClientServiceListView(generics.ListAPIView):
+    """List all clinic services for the mobile booking flow."""
+    permission_classes = [IsAuthenticated]
+    serializer_class = ClientServiceSerializer
+    queryset = Service.objects.all()
+
+
 # ── Appointments ──────────────────────────────────────────────────────
 
 class ClientAppointmentListCreateView(generics.ListCreateAPIView):
@@ -215,3 +232,104 @@ class ClientLeadCreateView(generics.CreateAPIView):
         if patient:
             lead.converted_patient = patient
             lead.save(update_fields=['converted_patient', 'updated_at'])
+
+# ── Doctor Chat ───────────────────────────────────────────────────────
+
+class ClientChatListView(generics.ListAPIView):
+    """List all chat rooms for the authenticated patient."""
+    permission_classes = [IsAuthenticated]
+    serializer_class = DoctorChatSerializer
+
+    def get_queryset(self):
+        patient = self.request.user.patient_profile
+        return DoctorChat.objects.filter(patient=patient).select_related('doctor')
+
+
+class ClientChatDetailView(generics.RetrieveAPIView):
+    """Retrieve a chat room with all messages."""
+    permission_classes = [IsAuthenticated]
+    serializer_class = DoctorChatDetailSerializer
+
+    def get_queryset(self):
+        patient = self.request.user.patient_profile
+        return DoctorChat.objects.filter(patient=patient).select_related('doctor').prefetch_related('messages')
+
+
+class ClientChatByAppointmentView(APIView):
+    """Get or create a chat room for a specific appointment."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, appointment_id):
+        patient = request.user.patient_profile
+        appointment = Appointment.objects.filter(
+            id=appointment_id, patient=patient
+        ).first()
+        if not appointment:
+            return Response(
+                {'detail': 'Appointment not found.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        chat, created = DoctorChat.objects.get_or_create(
+            appointment=appointment,
+            defaults={
+                'patient': patient,
+                'doctor': appointment.doctor,
+            },
+        )
+        serializer = DoctorChatDetailSerializer(chat)
+        return Response(serializer.data)
+
+
+class ClientChatSendMessageView(APIView):
+    """Send a message in a chat room as the patient."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, chat_id):
+        patient = request.user.patient_profile
+        try:
+            chat = DoctorChat.objects.get(id=chat_id, patient=patient)
+        except DoctorChat.DoesNotExist:
+            return Response(
+                {'detail': 'Chat not found.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = SendChatMessageSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        message = DoctorChatMessage.objects.create(
+            chat=chat,
+            sender_role='PATIENT',
+            sender=request.user,
+            content=serializer.validated_data['content'],
+        )
+
+        return Response(
+            DoctorChatMessageSerializer(message).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+# ── Notifications ─────────────────────────────────────────────────────
+
+class ClientNotificationListView(generics.ListAPIView):
+    """List notifications for the authenticated patient."""
+    permission_classes = [IsAuthenticated]
+    serializer_class = PatientNotificationSerializer
+
+    def get_queryset(self):
+        patient = self.request.user.patient_profile
+        return PatientNotification.objects.filter(patient=patient)
+
+
+class ClientNotificationMarkReadView(APIView):
+    """Mark all notifications as read for the authenticated patient."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        patient = request.user.patient_profile
+        PatientNotification.objects.filter(
+            patient=patient, is_read=False
+        ).update(is_read=True)
+        return Response({'detail': 'All notifications marked as read.'})

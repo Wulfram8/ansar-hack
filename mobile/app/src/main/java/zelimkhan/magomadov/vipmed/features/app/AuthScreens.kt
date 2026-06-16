@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.MedicalServices
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -178,13 +179,25 @@ fun AuthScreen(
                     singleLine = true,
                     shape = RoundedCornerShape(18.dp),
                 )
+                if (state.error != null) {
+                    Text(
+                        text = state.error,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                PrimaryActionButton(
-                    text = stringResource(R.string.continue_action),
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = { onEvent(AuthEvent.ContinueClick) },
-                )
+                if (state.isLoading) {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    PrimaryActionButton(
+                        text = stringResource(R.string.continue_action),
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onEvent(AuthEvent.ContinueClick) },
+                    )
+                }
                 Text(
                     text = stringResource(R.string.privacy_policy),
                     modifier = Modifier.fillMaxWidth(),
@@ -240,7 +253,7 @@ fun OtpScreen(
             )
             if (state.hasError) {
                 Text(
-                    text = stringResource(R.string.otp_error),
+                    text = state.errorMessage ?: stringResource(R.string.otp_error),
                     color = MaterialTheme.colorScheme.error,
                 )
             }
@@ -249,11 +262,17 @@ fun OtpScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.weight(1f))
-            PrimaryActionButton(
-                text = stringResource(R.string.continue_action),
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { onEvent(OtpEvent.ContinueClick) },
-            )
+            if (state.isLoading) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                PrimaryActionButton(
+                    text = stringResource(R.string.continue_action),
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { onEvent(OtpEvent.ContinueClick) },
+                )
+            }
         }
     }
 }
@@ -287,25 +306,31 @@ fun ProfileSetupScreen(
                     fontWeight = FontWeight.Black,
                 )
                 OutlinedTextField(
-                    value = state.fullName,
-                    onValueChange = {},
+                    value = state.firstName,
+                    onValueChange = { onEvent(ProfileSetupEvent.FirstNameChanged(name = it)) },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text(text = stringResource(R.string.name_label)) },
                     shape = RoundedCornerShape(18.dp),
                 )
                 OutlinedTextField(
-                    value = state.birthday,
-                    onValueChange = {},
+                    value = state.lastName,
+                    onValueChange = { onEvent(ProfileSetupEvent.LastNameChanged(name = it)) },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text(text = stringResource(R.string.birthday_label)) },
                     shape = RoundedCornerShape(18.dp),
                 )
             }
-            PrimaryActionButton(
-                text = stringResource(R.string.save_action),
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { onEvent(ProfileSetupEvent.SaveClick) },
-            )
+            if (state.isLoading) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                PrimaryActionButton(
+                    text = stringResource(R.string.save_action),
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { onEvent(ProfileSetupEvent.SaveClick) },
+                )
+            }
         }
     }
 }

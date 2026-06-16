@@ -1,6 +1,7 @@
 package zelimkhan.magomadov.vipmed.features.app
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,17 +30,21 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import zelimkhan.magomadov.vipmed.R
+import zelimkhan.magomadov.vipmed.core.common.ScreenStatus
 import zelimkhan.magomadov.vipmed.core.ui.AppointmentCard
 import zelimkhan.magomadov.vipmed.core.ui.Avatar
 import zelimkhan.magomadov.vipmed.core.ui.DoctorCard
@@ -62,100 +67,129 @@ fun HomeScreen(
     onBottomRouteClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    LaunchedEffect(Unit) {
+        onEvent(HomeEvent.ScreenOpened)
+    }
+
     Scaffold(
         modifier = modifier,
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+        when (state.status) {
+            ScreenStatus.Loading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(innerPadding),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text(
-                            text = stringResource(R.string.home_greeting),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Black,
-                        )
-                        Text(
-                            text = stringResource(R.string.home_subtitle),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    CircularProgressIndicator()
+                }
+            }
+
+            else -> {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Text(
+                                    text = if (state.profileName.isNotBlank()) {
+                                        "${stringResource(R.string.home_greeting).substringBefore(",")}, ${state.profileName.split(" ").firstOrNull() ?: ""}"
+                                    } else {
+                                        stringResource(R.string.home_greeting)
+                                    },
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Black,
+                                )
+                                Text(
+                                    text = stringResource(R.string.home_subtitle),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Avatar(
+                                initials = state.profileInitials.ifEmpty { "?" },
+                                modifier = Modifier.padding(top = 2.dp),
+                            )
+                        }
+                    }
+                    item {
+                        SectionHeader(
+                            title = stringResource(R.string.nearest_visit),
+                            action = stringResource(R.string.all_action),
+                            onActionClick = { onBottomRouteClick(VipMedRoute.Appointments.route) },
                         )
                     }
-                    Avatar(
-                        initials = "АП",
-                        modifier = Modifier.padding(top = 2.dp),
-                    )
+                    item {
+                        val appt = state.nearestAppointment
+                        if (appt != null) {
+                            AppointmentCard(
+                                title = appt.serviceDetail?.title ?: stringResource(R.string.cardiology_visit),
+                                doctor = "${appt.doctorDetail?.lastName ?: ""} ${appt.doctorDetail?.firstName ?: ""}".trim(),
+                                date = "${appt.date} ${appt.startTime}",
+                                status = appt.status,
+                                onClick = { onBottomRouteClick(VipMedRoute.AppointmentDetails.route) },
+                            )
+                        } else {
+                            Text(
+                                text = "Нет предстоящих записей",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    item {
+                        GradientPanel(
+                            title = stringResource(R.string.loyalty_title),
+                            subtitle = stringResource(R.string.loyalty_subtitle),
+                            icon = Icons.Rounded.Star,
+                        )
+                    }
+                    item {
+                        SectionHeader(title = stringResource(R.string.quick_actions))
+                    }
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            ListCard(
+                                title = stringResource(R.string.book_doctor),
+                                subtitle = stringResource(R.string.next_action),
+                                leadingIcon = Icons.Rounded.CalendarMonth,
+                                modifier = Modifier.weight(1f),
+                                onClick = { onEvent(HomeEvent.BookClick) },
+                            )
+                            ListCard(
+                                title = stringResource(R.string.lab_results),
+                                subtitle = stringResource(R.string.ready),
+                                leadingIcon = Icons.Rounded.Science,
+                                modifier = Modifier.weight(1f),
+                                onClick = { onEvent(HomeEvent.LabResultsClick) },
+                            )
+                        }
+                    }
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            MetricCard(
+                                title = stringResource(R.string.heart_rate),
+                                value = stringResource(R.string.heart_rate_value),
+                                icon = Icons.Rounded.Favorite,
+                                modifier = Modifier.weight(1f),
+                            )
+                            MetricCard(
+                                title = stringResource(R.string.pressure),
+                                value = stringResource(R.string.pressure_value),
+                                icon = Icons.Rounded.MonitorHeart,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                    item {
+                        Spacer(modifier = Modifier.appNavPaddings())
+                    }
                 }
-            }
-            item {
-                SectionHeader(
-                    title = stringResource(R.string.nearest_visit),
-                    action = stringResource(R.string.all_action),
-                    onActionClick = { onBottomRouteClick(VipMedRoute.Appointments.route) },
-                )
-            }
-            item {
-                AppointmentCard(
-                    title = stringResource(R.string.cardiology_visit),
-                    doctor = stringResource(R.string.doctor_ivanova),
-                    date = stringResource(R.string.visit_time),
-                    status = stringResource(R.string.confirmed),
-                    onClick = { onBottomRouteClick(VipMedRoute.AppointmentDetails.route) },
-                )
-            }
-            item {
-                GradientPanel(
-                    title = stringResource(R.string.loyalty_title),
-                    subtitle = stringResource(R.string.loyalty_subtitle),
-                    icon = Icons.Rounded.Star,
-                )
-            }
-            item {
-                SectionHeader(title = stringResource(R.string.quick_actions))
-            }
-            item {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    ListCard(
-                        title = stringResource(R.string.book_doctor),
-                        subtitle = stringResource(R.string.next_action),
-                        leadingIcon = Icons.Rounded.CalendarMonth,
-                        modifier = Modifier.weight(1f),
-                        onClick = { onEvent(HomeEvent.BookClick) },
-                    )
-                    ListCard(
-                        title = stringResource(R.string.lab_results),
-                        subtitle = stringResource(R.string.ready),
-                        leadingIcon = Icons.Rounded.Science,
-                        modifier = Modifier.weight(1f),
-                        onClick = { onEvent(HomeEvent.LabResultsClick) },
-                    )
-                }
-            }
-            item {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    MetricCard(
-                        title = stringResource(R.string.heart_rate),
-                        value = stringResource(R.string.heart_rate_value),
-                        icon = Icons.Rounded.Favorite,
-                        modifier = Modifier.weight(1f),
-                    )
-                    MetricCard(
-                        title = stringResource(R.string.pressure),
-                        value = stringResource(R.string.pressure_value),
-                        icon = Icons.Rounded.MonitorHeart,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-            item {
-                Spacer(modifier = Modifier.appNavPaddings())
             }
         }
     }
@@ -168,6 +202,10 @@ fun AppointmentsScreen(
     onBottomRouteClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    LaunchedEffect(Unit) {
+        onEvent(AppointmentsEvent.ScreenOpened)
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -187,18 +225,57 @@ fun AppointmentsScreen(
         ) {
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    InfoChip(text = stringResource(R.string.upcoming))
-                    InfoChip(text = stringResource(R.string.past))
+                    InfoChip(
+                        text = stringResource(R.string.upcoming),
+                        color = if (state.selectedPeriod == "future") {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surfaceContainerHighest
+                        },
+                    )
+                    InfoChip(
+                        text = stringResource(R.string.past),
+                        color = if (state.selectedPeriod == "past") {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surfaceContainerHighest
+                        },
+                    )
                 }
             }
-            item {
-                AppointmentCard(
-                    title = stringResource(R.string.cardiology_visit),
-                    doctor = stringResource(R.string.doctor_ivanova),
-                    date = stringResource(R.string.visit_time),
-                    status = stringResource(R.string.confirmed),
-                    onClick = { onEvent(AppointmentsEvent.DetailsClick) },
-                )
+            when (state.status) {
+                ScreenStatus.Loading -> {
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(32.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                }
+
+                else -> {
+                    if (state.appointments.isEmpty()) {
+                        item {
+                            Text(
+                                text = "Нет записей",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(16.dp),
+                            )
+                        }
+                    } else {
+                        items(state.appointments) { appointment ->
+                            AppointmentCard(
+                                title = appointment.serviceDetail?.title ?: "Приём",
+                                doctor = "${appointment.doctorDetail?.lastName ?: ""} ${appointment.doctorDetail?.firstName ?: ""}".trim(),
+                                date = "${appointment.date} ${appointment.startTime}",
+                                status = appointment.status,
+                                onClick = { onEvent(AppointmentsEvent.DetailsClick(appointmentId = appointment.id)) },
+                            )
+                        }
+                    }
+                }
             }
             item {
                 Spacer(modifier = Modifier.appNavPaddings())
@@ -224,39 +301,51 @@ fun AppointmentDetailsScreen(
             )
         },
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            AppointmentCard(
-                title = stringResource(R.string.cardiology_visit),
-                doctor = stringResource(R.string.doctor_ivanova),
-                date = stringResource(R.string.visit_time),
-                status = stringResource(R.string.confirmed),
-                onClick = {},
-            )
-            ListCard(
-                title = stringResource(R.string.clinic_name),
-                subtitle = stringResource(R.string.clinic_address),
-                leadingIcon = Icons.Rounded.MedicalServices,
-            )
-            Text(
-                text = stringResource(R.string.appointment_notes),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            PrimaryActionButton(
-                text = stringResource(R.string.open_chat),
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { onEvent(AppointmentDetailsEvent.ChatClick) },
-            )
-            SecondaryActionButton(
-                text = stringResource(R.string.cancel_action),
-                modifier = Modifier.fillMaxWidth(),
-                onClick = {},
-            )
+        val appointment = state.appointment
+        if (appointment != null) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                AppointmentCard(
+                    title = appointment.serviceDetail?.title ?: "Приём",
+                    doctor = "${appointment.doctorDetail?.lastName ?: ""} ${appointment.doctorDetail?.firstName ?: ""}".trim(),
+                    date = "${appointment.date} ${appointment.startTime}",
+                    status = appointment.status,
+                    onClick = {},
+                )
+                ListCard(
+                    title = stringResource(R.string.clinic_name),
+                    subtitle = appointment.cabinet.ifEmpty { stringResource(R.string.clinic_address) },
+                    leadingIcon = Icons.Rounded.MedicalServices,
+                )
+                if (appointment.comment.isNotEmpty()) {
+                    Text(
+                        text = appointment.comment,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                PrimaryActionButton(
+                    text = stringResource(R.string.open_chat),
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { onEvent(AppointmentDetailsEvent.ChatClick) },
+                )
+                SecondaryActionButton(
+                    text = stringResource(R.string.cancel_action),
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {},
+                )
+            }
+        } else {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
+            }
         }
     }
 }
@@ -268,6 +357,10 @@ fun DoctorsScreen(
     onBottomRouteClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    LaunchedEffect(Unit) {
+        onEvent(DoctorsEvent.ScreenOpened)
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -292,14 +385,39 @@ fun DoctorsScreen(
                     leadingIcon = Icons.Rounded.Person,
                 )
             }
-            items(listOf(1, 2, 3)) {
-                DoctorCard(
-                    name = stringResource(R.string.doctor_ivanova),
-                    specialty = stringResource(R.string.doctor_specialty),
-                    rating = stringResource(R.string.doctor_rating),
-                    action = stringResource(R.string.choose_action),
-                    onClick = { onEvent(DoctorsEvent.DoctorClick) },
-                )
+            when (state.status) {
+                ScreenStatus.Loading -> {
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(32.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                }
+
+                else -> {
+                    if (state.doctors.isEmpty()) {
+                        item {
+                            Text(
+                                text = "Нет врачей",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(16.dp),
+                            )
+                        }
+                    } else {
+                        items(state.doctors) { doctor ->
+                            DoctorCard(
+                                name = "${doctor.lastName} ${doctor.firstName} ${doctor.middleName}".trim(),
+                                specialty = doctor.specialty,
+                                rating = "4.9",
+                                action = stringResource(R.string.choose_action),
+                                onClick = { onEvent(DoctorsEvent.DoctorClick(doctorId = doctor.id)) },
+                            )
+                        }
+                    }
+                }
             }
             item {
                 Spacer(modifier = Modifier.appNavPaddings())
@@ -314,6 +432,8 @@ fun DoctorDetailsScreen(
     onEvent: (DoctorDetailsEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val doctor = state.doctor
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -336,7 +456,7 @@ fun DoctorDetailsScreen(
                         fontWeight = FontWeight.Black,
                     )
                     Text(
-                        text = stringResource(R.string.cardiology_visit),
+                        text = doctor?.specialty ?: stringResource(R.string.cardiology_visit),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -347,51 +467,60 @@ fun DoctorDetailsScreen(
             }
         },
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            item {
-                GradientPanel(
-                    title = stringResource(R.string.doctor_ivanova),
-                    subtitle = stringResource(R.string.doctor_specialty),
-                    icon = Icons.Rounded.MedicalServices,
-                )
-            }
-            item {
-                Text(
-                    text = stringResource(R.string.about_doctor),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            }
-            item {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    MetricCard(
-                        title = stringResource(R.string.experience),
-                        value = stringResource(R.string.experience_value),
+        if (doctor != null) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                item {
+                    GradientPanel(
+                        title = "${doctor.lastName} ${doctor.firstName}".trim(),
+                        subtitle = doctor.specialty,
                         icon = Icons.Rounded.MedicalServices,
-                        modifier = Modifier.weight(1f),
-                    )
-                    MetricCard(
-                        title = stringResource(R.string.reviews),
-                        value = stringResource(R.string.reviews_value),
-                        icon = Icons.Rounded.Star,
-                        modifier = Modifier.weight(1f),
                     )
                 }
-            }
-            item {
-                SectionHeader(title = stringResource(R.string.nearest_slots))
-            }
-            item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    InfoChip(text = stringResource(R.string.time_morning))
-                    InfoChip(text = stringResource(R.string.time_day))
-                    InfoChip(text = stringResource(R.string.time_evening))
+                item {
+                    Text(
+                        text = stringResource(R.string.about_doctor),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
                 }
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        MetricCard(
+                            title = stringResource(R.string.experience),
+                            value = stringResource(R.string.experience_value),
+                            icon = Icons.Rounded.MedicalServices,
+                            modifier = Modifier.weight(1f),
+                        )
+                        MetricCard(
+                            title = stringResource(R.string.reviews),
+                            value = stringResource(R.string.reviews_value),
+                            icon = Icons.Rounded.Star,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+                item {
+                    SectionHeader(title = stringResource(R.string.nearest_slots))
+                }
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        InfoChip(text = stringResource(R.string.time_morning))
+                        InfoChip(text = stringResource(R.string.time_day))
+                        InfoChip(text = stringResource(R.string.time_evening))
+                    }
+                }
+            }
+        } else {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator()
             }
         }
     }
@@ -404,6 +533,12 @@ fun ProfileScreen(
     onBottomRouteClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    LaunchedEffect(Unit) {
+        onEvent(ProfileEvent.ScreenOpened)
+    }
+
+    val profile = state.profile
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -423,8 +558,8 @@ fun ProfileScreen(
         ) {
             item {
                 GradientPanel(
-                    title = stringResource(R.string.profile_name),
-                    subtitle = stringResource(R.string.profile_phone),
+                    title = if (profile != null) "${profile.firstName} ${profile.lastName}" else stringResource(R.string.profile_name),
+                    subtitle = profile?.phone ?: stringResource(R.string.profile_phone),
                     icon = Icons.Rounded.Person,
                 )
             }
@@ -455,7 +590,7 @@ fun ProfileScreen(
             item {
                 ListCard(
                     title = stringResource(R.string.security),
-                    subtitle = stringResource(R.string.profile_phone),
+                    subtitle = profile?.phone ?: stringResource(R.string.profile_phone),
                     leadingIcon = Icons.Rounded.Security,
                 )
             }
@@ -593,7 +728,7 @@ private fun SectionLabel(text: String) {
 private fun HomeScreenPreview() {
     VipMedTheme(dynamicColor = false) {
         HomeScreen(
-            state = HomeState(),
+            state = HomeState(status = ScreenStatus.Success),
             onEvent = {},
             onBottomRouteClick = {},
         )
@@ -605,7 +740,7 @@ private fun HomeScreenPreview() {
 private fun DoctorsScreenPreview() {
     VipMedTheme(dynamicColor = false) {
         DoctorsScreen(
-            state = DoctorsState(),
+            state = DoctorsState(status = ScreenStatus.Success),
             onEvent = {},
             onBottomRouteClick = {},
         )

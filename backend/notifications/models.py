@@ -51,3 +51,27 @@ class ScheduledNotification(BaseModel):
 
     def __str__(self):
         return f"Notification for {self.patient} via {self.channel} at {self.send_at}"
+
+
+class PatientNotification(BaseModel):
+    """Client-facing notification visible in the mobile app."""
+    TYPE_CHOICES = (
+        ('APPOINTMENT_CONFIRMED', 'Appointment Confirmed'),
+        ('APPOINTMENT_REMINDER', 'Appointment Reminder'),
+        ('APPOINTMENT_CANCELLED', 'Appointment Cancelled'),
+        ('RESULTS_READY', 'Results Ready'),
+        ('PROMO', 'Promotion'),
+        ('SYSTEM', 'System'),
+    )
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='notifications')
+    title = models.CharField(max_length=255)
+    body = models.TextField(blank=True)
+    notification_type = models.CharField(max_length=30, choices=TYPE_CHOICES, default='SYSTEM')
+    is_read = models.BooleanField(default=False)
+    appointment = models.ForeignKey(Appointment, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.title} → {self.patient}"

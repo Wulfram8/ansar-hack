@@ -222,6 +222,7 @@ fun VipMedNavGraph(
                 ChatScreen(
                     state = state.chat,
                     onEvent = viewModel::onChatEvent,
+                    onLoadChat = viewModel::loadChatForAppointment,
                 )
             }
             composable(route = VipMedRoute.Notifications.route) {
