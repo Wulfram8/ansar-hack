@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigation } from "@refinedev/core";
 import {
   Plane,
   Plus,
@@ -6,6 +7,8 @@ import {
   ChevronRight,
   AlarmClock,
   BarChart3,
+  UserPlus,
+  CalendarPlus,
 } from "lucide-react";
 import {
   Skeleton,
@@ -16,8 +19,10 @@ import {
   SelectValue,
 } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils";
-import { useScheduleBoard } from "./useScheduleBoard";
+import { useScheduleBoard, useMonthBoard } from "./useScheduleBoard";
 import { ScheduleFormDialog } from "./ScheduleFormDialog";
+import { DoctorFormDialog } from "./DoctorFormDialog";
+import { AppointmentFormDialog } from "@/pages/appointments/AppointmentFormDialog";
 
 type ViewMode = "day" | "week" | "month";
 
@@ -63,10 +68,22 @@ export function SchedulePage() {
   const [load, setLoad] = useState<string>(ALL);
   const [shiftOpen, setShiftOpen] = useState(false);
   const [timeoffOpen, setTimeoffOpen] = useState(false);
+  const [doctorOpen, setDoctorOpen] = useState(false);
+  const [bookOpen, setBookOpen] = useState(false);
+  const [bookDoctor, setBookDoctor] = useState<string | null>(null);
+  const { show } = useNavigation();
 
   // Доска всегда грузится по неделе, содержащей cursor.
   const weekStart = useMemo(() => mondayOf(cursor), [cursor]);
   const { data, isLoading, refetch } = useScheduleBoard(iso(weekStart));
+  const monthAnchor = useMemo(() => iso(new Date(cursor.getFullYear(), cursor.getMonth(), 1)), [cursor]);
+  const { data: monthData, isLoading: monthLoading, refetch: refetchMonth } = useMonthBoard(monthAnchor, view === "month");
+  const month = monthData?.data;
+
+  const openBook = (doctorUserId: string) => {
+    setBookDoctor(doctorUserId);
+    setBookOpen(true);
+  };
   const board = data?.data;
 
   const monthLabel = useMemo(
@@ -138,6 +155,13 @@ export function SchedulePage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setDoctorOpen(true)}
+            className="inline-flex h-9 items-center gap-2 rounded-md border bg-card px-3 text-sm font-medium hover:bg-accent"
+          >
+            <UserPlus className="h-4 w-4" />
+            Добавить врача
+          </button>
           <button
             onClick={() => setTimeoffOpen(true)}
             className="inline-flex h-9 items-center gap-2 rounded-md border bg-card px-3 text-sm font-medium hover:bg-accent"
@@ -225,7 +249,8 @@ export function SchedulePage() {
         </div>
       </div>
 
-      {/* Gantt */}
+      {/* Gantt — режимы «день» и «неделя» */}
+      {view !== "month" && (
       <div className="overflow-hidden rounded-lg border bg-card">
         <div className="overflow-x-auto">
           <div className="min-w-[980px]">
@@ -334,6 +359,13 @@ export function SchedulePage() {
                         <span className="text-[11px] font-semibold">{doc.load_percent}%</span>
                       </div>
                     </div>
+                    <button
+                      onClick={() => openBook(doc.user_id)}
+                      title="Назначить пациента"
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border bg-card text-muted-foreground hover:bg-accent hover:text-foreground"
+                    >
+                      <CalendarPlus className="h-3.5 w-3.5" />
+                    </button>
                   </div>
 
                   {/* Дни */}
@@ -358,7 +390,11 @@ export function SchedulePage() {
                               <div
                                 key={bi}
                                 title={`${b.start}–${b.end} · ${b.patient ?? ""} · ${b.service ?? ""}`}
-                                className="absolute top-1/2 h-9 -translate-y-1/2 overflow-hidden rounded-[3px] border-l-2 px-1 py-0.5"
+                                onClick={() => b.patient_id && show("patients", b.patient_id)}
+                                className={cn(
+                                  "absolute top-1/2 h-9 -translate-y-1/2 overflow-hidden rounded-[3px] border-l-2 px-1 py-0.5",
+                                  b.patient_id && "cursor-pointer hover:brightness-95",
+                                )}
                                 style={{
                                   left: `${b.left_pct}%`,
                                   width: `${b.width_pct}%`,
@@ -387,6 +423,72 @@ export function SchedulePage() {
           </div>
         </div>
       </div>
+      )}
+
+      {/* Календарь — режим «месяц» */}
+      {view === "month" && (
+        <div className="overflow-hidden rounded-lg border bg-card">
+          <div className="grid grid-cols-7 border-b bg-muted/60">
+            {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((w) => (
+              <div key={w} className="border-r px-2 py-2 text-center text-[11px] font-semibold text-muted-foreground last:border-r-0">
+                {w}
+              </div>
+            ))}
+          </div>
+          {monthLoading && (
+            <div className="p-6">
+              <Skeleton className="h-[480px] w-full" />
+            </div>
+          )}
+          {!monthLoading && month && (
+            <div className="grid grid-cols-7">
+              {month.days.map((d) => (
+                <div
+                  key={d.date}
+                  className={cn(
+                    "min-h-[110px] border-b border-r p-1.5 last:border-r-0",
+                    !d.in_month && "bg-muted/30",
+                  )}
+                >
+                  <div className="mb-1 flex items-center justify-between">
+                    <span
+                      className={cn(
+                        "text-[11px] font-semibold",
+                        d.is_today
+                          ? "flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                          : d.in_month
+                            ? "text-foreground"
+                            : "text-muted-foreground/50",
+                      )}
+                    >
+                      {d.day}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    {d.appointments.slice(0, 4).map((a) => (
+                      <button
+                        key={a.id}
+                        onClick={() => a.patient_id && show("patients", a.patient_id)}
+                        title={`${a.time} · ${a.patient} · ${a.doctor}${a.service ? ` · ${a.service}` : ""}`}
+                        className="flex w-full items-center gap-1 overflow-hidden rounded px-1 py-0.5 text-left text-[10px] hover:brightness-95"
+                        style={{ backgroundColor: `${a.color}22`, color: a.color }}
+                      >
+                        <span className="font-semibold">{a.time}</span>
+                        <span className="truncate text-foreground/80">{a.patient}</span>
+                      </button>
+                    ))}
+                    {d.appointments.length > 4 && (
+                      <div className="px-1 text-[10px] text-muted-foreground">
+                        +{d.appointments.length - 4} ещё
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Сводки */}
       <div className="grid gap-4 lg:grid-cols-3">
@@ -487,6 +589,13 @@ export function SchedulePage() {
 
       <ScheduleFormDialog open={shiftOpen} onOpenChange={setShiftOpen} mode="shift" onSaved={() => refetch()} />
       <ScheduleFormDialog open={timeoffOpen} onOpenChange={setTimeoffOpen} mode="timeoff" onSaved={() => refetch()} />
+      <DoctorFormDialog open={doctorOpen} onOpenChange={setDoctorOpen} onSaved={() => refetch()} />
+      <AppointmentFormDialog
+        open={bookOpen}
+        onOpenChange={setBookOpen}
+        defaultDoctor={bookDoctor}
+        onSaved={() => { refetch(); refetchMonth(); }}
+      />
     </div>
   );
 }

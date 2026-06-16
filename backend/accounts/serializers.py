@@ -69,13 +69,47 @@ class DoctorSerializer(serializers.ModelSerializer):
     user_name = serializers.SerializerMethodField()
     initials = serializers.SerializerMethodField()
     email = serializers.CharField(source='user.email', read_only=True)
+    # Поля для создания нового врача вместе с пользователем (write-only).
+    first_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    last_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    new_email = serializers.EmailField(write_only=True, required=False, allow_blank=True)
+    phone = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = Doctor
         fields = [
             'id', 'user', 'user_name', 'initials', 'email',
             'specialty', 'cabinet', 'color_hex', 'hourly_rate', 'license_number',
+            'first_name', 'last_name', 'new_email', 'phone',
         ]
+        extra_kwargs = {'user': {'required': False}}
+
+    def create(self, validated_data):
+        first = validated_data.pop('first_name', '').strip()
+        last = validated_data.pop('last_name', '').strip()
+        email = validated_data.pop('new_email', '').strip()
+        phone = validated_data.pop('phone', '').strip()
+        user = validated_data.get('user')
+        if user is None:
+            # Создаём нового пользователя-врача.
+            role, _ = Role.objects.get_or_create(code='DOCTOR', defaults={'name': 'Врач'})
+            if not email:
+                base = (last or 'doctor').lower()
+                email = f"{base}.{User.objects.count() + 1}@clinic.local"
+            username = email.split('@')[0]
+            i = 0
+            uname = username
+            while User.objects.filter(username=uname).exists():
+                i += 1
+                uname = f"{username}{i}"
+            user = User(
+                username=uname, email=email, first_name=first, last_name=last,
+                phone=phone or None, role=role,
+            )
+            user.set_unusable_password()
+            user.save()
+            validated_data['user'] = user
+        return super().create(validated_data)
 
     def get_user_name(self, obj):
         u = obj.user

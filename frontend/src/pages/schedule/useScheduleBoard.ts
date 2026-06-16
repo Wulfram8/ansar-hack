@@ -31,3 +31,16 @@ export function useDoctors() {
   });
   return data?.data ?? [];
 }
+
+import type { MonthBoard } from "@/entities/schedule";
+
+/** Календарь записей на месяц (date — любой день месяца, YYYY-MM-DD). */
+export function useMonthBoard(date: string, enabled: boolean) {
+  const apiUrl = useApiUrl();
+  return useCustom<MonthBoard>({
+    url: `${apiUrl}/schedules/month/`,
+    method: "get",
+    config: { query: { date } },
+    queryOptions: { enabled },
+  });
+}

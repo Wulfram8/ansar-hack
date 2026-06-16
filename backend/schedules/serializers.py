@@ -8,6 +8,8 @@ class BlockSerializer(serializers.Serializer):
     left_pct = serializers.FloatField()
     width_pct = serializers.FloatField()
     patient = serializers.CharField(allow_null=True)
+    patient_id = serializers.CharField(allow_null=True)
+    appointment_id = serializers.CharField(allow_null=True)
     service = serializers.CharField(allow_null=True)
     status = serializers.CharField()
 
@@ -21,6 +23,7 @@ class DayCellSerializer(serializers.Serializer):
 
 class DoctorRowSerializer(serializers.Serializer):
     id = serializers.CharField()
+    user_id = serializers.CharField()
     name = serializers.CharField()
     initials = serializers.CharField()
     specialty = serializers.CharField()

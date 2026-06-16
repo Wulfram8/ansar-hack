@@ -1,10 +1,11 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Send, Sparkles, MessageSquare, FileText, ListTodo, Megaphone } from "lucide-react";
+import { Plus, Send, Sparkles, MessageSquare, FileText, ListTodo, Megaphone, Mic } from "lucide-react";
 import { Button, Textarea, Skeleton, toastStore } from "@/shared/ui";
 import { cn } from "@/shared/lib/utils";
 import type { AssistantAction, AssistantSuggestion } from "@/entities/assistant";
 import { useAssistant } from "./useAssistant";
+import { useSpeechRecognition } from "./useSpeechRecognition";
 
 /** Иконка для кнопки-действия по её коду. */
 function actionIcon(action: string) {
@@ -112,6 +113,20 @@ export function AssistantPage() {
 
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const { supported: micSupported, listening, toggle: toggleMic } = useSpeechRecognition({
+    lang: "ru-RU",
+    onResult: (text) =>
+      setDraft((prev) => (prev ? `${prev} ${text}` : text)),
+    onError: (err) =>
+      toastStore.push({
+        message:
+          err === "not-allowed"
+            ? "Доступ к микрофону запрещён"
+            : "Не удалось распознать речь",
+        type: "error",
+      }),
+  });
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -258,6 +273,18 @@ export function AssistantPage() {
               placeholder="Спросите ассистента…"
               className="min-h-[44px] resize-none"
             />
+            {micSupported && (
+              <Button
+                size="icon"
+                variant={listening ? "default" : "outline"}
+                className={cn("h-11 w-11 shrink-0", listening && "animate-pulse")}
+                onClick={toggleMic}
+                aria-label={listening ? "Остановить запись" : "Голосовой ввод"}
+                title={listening ? "Остановить запись" : "Голосовой ввод"}
+              >
+                <Mic className="h-4 w-4" />
+              </Button>
+            )}
             <Button
               size="icon"
               className="h-11 w-11 shrink-0"

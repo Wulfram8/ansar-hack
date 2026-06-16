@@ -15,12 +15,15 @@ export interface NotificationTemplate {
   channels?: string[];
   variables?: string[];
   is_active: boolean;
+  rules_count?: number;
 }
 
 export interface AutomationRule {
   id: string;
   template: string;
+  template_title?: string | null;
   trigger_kind: TriggerKind;
+  trigger_display?: string;
   offset_minutes: number;
   conditions?: Record<string, unknown>;
   is_active: boolean;
@@ -30,9 +33,12 @@ export interface ScheduledNotification {
   id: string;
   rule: string;
   patient: string;
+  patient_name?: string | null;
+  template_title?: string | null;
   appointment?: string | null;
   send_at: string;
   channel: string;
+  channel_code?: string | null;
   status: ScheduledStatus;
   payload?: Record<string, unknown>;
   attempts: number;

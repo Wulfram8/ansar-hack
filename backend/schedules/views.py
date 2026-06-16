@@ -132,6 +132,8 @@ class ScheduleBoardView(APIView):
                         "patient": (
                             f"{a.patient.last_name} {a.patient.first_name[:1]}." if a.patient else None
                         ),
+                        "patient_id": str(a.patient_id) if a.patient_id else None,
+                        "appointment_id": str(a.id),
                         "service": a.service.title if a.service else None,
                         "status": a.status,
                     })
@@ -149,6 +151,7 @@ class ScheduleBoardView(APIView):
 
             doctor_rows.append({
                 "id": str(doc.id),
+                "user_id": str(u.id),
                 "name": f"{u.last_name} {u.first_name[:1]}.{(u.middle_name[:1] + '.') if getattr(u, 'middle_name', '') else ''}".strip(),
                 "initials": _initials(u.first_name, u.last_name),
                 "specialty": doc.specialty or "Врач",
@@ -223,3 +226,76 @@ class ScheduleExceptionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     pagination_class = None
     filterset_fields = ['doctor', 'type']
+
+
+import calendar as _calendar
+
+MONTHS_NOM = [
+    "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+    "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
+]
+
+
+class MonthBoardView(APIView):
+    """Календарь записей на месяц. ?date=YYYY-MM-DD (любой день месяца).
+    Возвращает сетку 6×7 (с хвостами соседних месяцев)."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        raw = request.query_params.get("date")
+        try:
+            base = datetime.strptime(raw, "%Y-%m-%d").date() if raw else date.today()
+        except ValueError:
+            base = date.today()
+        today = date.today()
+        first = base.replace(day=1)
+        last = base.replace(day=_calendar.monthrange(base.year, base.month)[1])
+        grid_start = first - timedelta(days=first.weekday())
+        grid_end = last + timedelta(days=(6 - last.weekday()))
+
+        # Цвета врачей по их user_id.
+        doc_color = {
+            d.user_id: (d.color_hex or "#1e40af")
+            for d in Doctor.objects.all()
+        }
+
+        appts = (
+            Appointment.objects
+            .filter(date__range=(grid_start, grid_end))
+            .exclude(status="CANCELLED")
+            .select_related("patient", "doctor", "service")
+            .order_by("date", "start_time")
+        )
+        by_date = {}
+        for a in appts:
+            u = a.doctor
+            doctor_name = (" ".join(filter(None, [u.last_name, u.first_name])) or u.username) if u else "—"
+            by_date.setdefault(a.date, []).append({
+                "id": str(a.id),
+                "time": a.start_time.strftime("%H:%M"),
+                "patient": (f"{a.patient.last_name} {a.patient.first_name[:1]}." if a.patient else "—"),
+                "patient_id": str(a.patient_id) if a.patient_id else None,
+                "doctor": doctor_name,
+                "service": a.service.title if a.service else None,
+                "status": a.status,
+                "color": doc_color.get(a.doctor_id, "#1e40af"),
+            })
+
+        days = []
+        cur = grid_start
+        while cur <= grid_end:
+            days.append({
+                "date": cur.isoformat(),
+                "day": cur.day,
+                "in_month": cur.month == base.month,
+                "is_today": cur == today,
+                "appointments": by_date.get(cur, []),
+            })
+            cur += timedelta(days=1)
+
+        return Response({
+            "month_label": f"{MONTHS_NOM[base.month - 1]} {base.year}",
+            "month": base.month,
+            "year": base.year,
+            "days": days,
+        })

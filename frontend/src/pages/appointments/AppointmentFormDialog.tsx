@@ -33,11 +33,13 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   appointment?: Appointment | null;
   defaultPatient?: { id: string; label: string } | null;
+  defaultDoctor?: string | null;
+  onSaved?: () => void;
 }
 
 const NONE = "__none__";
 
-export function AppointmentFormDialog({ open, onOpenChange, appointment, defaultPatient }: Props) {
+export function AppointmentFormDialog({ open, onOpenChange, appointment, defaultPatient, defaultDoctor, onSaved }: Props) {
   const isEdit = !!appointment;
   const doctors = useDoctors();
   const services = useServices();
@@ -82,7 +84,7 @@ export function AppointmentFormDialog({ open, onOpenChange, appointment, default
       setPatientId(defaultPatient?.id ?? "");
       setPatientLabel(defaultPatient?.label ?? "");
       setPatientQuery("");
-      setDoctorUserId(doctors[0]?.user ? String(doctors[0].user) : "");
+      setDoctorUserId(defaultDoctor ?? (doctors[0]?.user ? String(doctors[0].user) : ""));
       setService(NONE); setDate(""); setStart("10:00"); setEnd("");
       setCabinet(""); setStatus("CREATED"); setComment("");
     }
@@ -117,6 +119,7 @@ export function AppointmentFormDialog({ open, onOpenChange, appointment, default
       onSuccess: () => {
         toastStore.push({ message: isEdit ? "Запись обновлена" : "Запись создана", type: "success" });
         invalidate({ resource: "appointments", invalidates: ["list"] });
+        onSaved?.();
         onOpenChange(false);
       },
       onError: (err: unknown) => {

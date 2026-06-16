@@ -38,7 +38,7 @@ function NavRow({ item }: { item: NavItem }) {
             "flex items-center gap-2.5 rounded-md px-2 py-2 text-sm font-medium transition-colors",
             isActive
               ? "bg-accent text-accent-foreground"
-              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+              : "text-foreground/80 hover:bg-accent hover:text-accent-foreground",
           )
         }
       >
@@ -50,7 +50,7 @@ function NavRow({ item }: { item: NavItem }) {
   return (
     <span
       title="Раздел в разработке"
-      className="flex cursor-default items-center gap-2.5 rounded-md px-2 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+      className="flex cursor-default items-center gap-2.5 rounded-md px-2 py-2 text-sm font-medium text-foreground/40"
     >
       {inner}
     </span>

@@ -4,8 +4,36 @@ export interface ScheduleBlock {
   left_pct: number;
   width_pct: number;
   patient: string | null;
+  patient_id: string | null;
+  appointment_id: string | null;
   service: string | null;
   status: string;
+}
+
+export interface MonthAppointment {
+  id: string;
+  time: string;
+  patient: string;
+  patient_id: string | null;
+  doctor: string;
+  service: string | null;
+  status: string;
+  color: string;
+}
+
+export interface MonthDay {
+  date: string;
+  day: number;
+  in_month: boolean;
+  is_today: boolean;
+  appointments: MonthAppointment[];
+}
+
+export interface MonthBoard {
+  month_label: string;
+  month: number;
+  year: number;
+  days: MonthDay[];
 }
 
 export interface DayCell {
@@ -17,6 +45,7 @@ export interface DayCell {
 
 export interface DoctorRow {
   id: string;
+  user_id: string;
   name: string;
   initials: string;
   specialty: string;
