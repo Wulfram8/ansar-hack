@@ -3,6 +3,7 @@ from patients.models import Patient
 from accounts.models import Doctor, User
 from appointments.models import Appointment, Service
 from leads.models import Lead
+from core.phone import normalize_phone
 
 
 # ── Auth ──────────────────────────────────────────────────────────────
@@ -118,3 +119,7 @@ class ClientLeadSerializer(serializers.ModelSerializer):
             'first_name', 'last_name', 'phone', 'email',
             'notes', 'channel',
         ]
+
+    def validate_phone(self, value):
+        # Сохраняем телефон заявки в каноническом виде — для дедупликации.
+        return normalize_phone(value) or value

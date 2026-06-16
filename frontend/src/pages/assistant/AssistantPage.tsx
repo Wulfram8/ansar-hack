@@ -6,6 +6,7 @@ import { cn } from "@/shared/lib/utils";
 import type { AssistantAction, AssistantSuggestion } from "@/entities/assistant";
 import { useAssistant } from "./useAssistant";
 import { useSpeechRecognition } from "./useSpeechRecognition";
+import { VoiceInputDialog } from "./VoiceInputDialog";
 
 /** Иконка для кнопки-действия по её коду. */
 function actionIcon(action: string) {
@@ -114,19 +115,8 @@ export function AssistantPage() {
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { supported: micSupported, listening, toggle: toggleMic } = useSpeechRecognition({
-    lang: "ru-RU",
-    onResult: (text) =>
-      setDraft((prev) => (prev ? `${prev} ${text}` : text)),
-    onError: (err) =>
-      toastStore.push({
-        message:
-          err === "not-allowed"
-            ? "Доступ к микрофону запрещён"
-            : "Не удалось распознать речь",
-        type: "error",
-      }),
-  });
+  const { supported: micSupported } = useSpeechRecognition();
+  const [voiceOpen, setVoiceOpen] = useState(false);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -276,11 +266,11 @@ export function AssistantPage() {
             {micSupported && (
               <Button
                 size="icon"
-                variant={listening ? "default" : "outline"}
-                className={cn("h-11 w-11 shrink-0", listening && "animate-pulse")}
-                onClick={toggleMic}
-                aria-label={listening ? "Остановить запись" : "Голосовой ввод"}
-                title={listening ? "Остановить запись" : "Голосовой ввод"}
+                variant="outline"
+                className="h-11 w-11 shrink-0"
+                onClick={() => setVoiceOpen(true)}
+                aria-label="Голосовой ввод"
+                title="Голосовой ввод"
               >
                 <Mic className="h-4 w-4" />
               </Button>
@@ -297,6 +287,12 @@ export function AssistantPage() {
           </div>
         </div>
       </section>
+
+      <VoiceInputDialog
+        open={voiceOpen}
+        onOpenChange={setVoiceOpen}
+        onConfirm={(text) => setDraft((prev) => (prev ? `${prev} ${text}` : text))}
+      />
     </div>
   );
 }

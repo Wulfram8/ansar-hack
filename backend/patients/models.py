@@ -1,5 +1,6 @@
 from django.db import models
 from core.models import BaseModel
+from core.phone import normalize_phone
 from django.conf import settings
 
 class PatientSource(BaseModel):
@@ -50,6 +51,14 @@ class Patient(BaseModel):
     visits_count = models.IntegerField(default=0)
     average_check_kopecks = models.BigIntegerField(default=0)
     lifetime_value_kopecks = models.BigIntegerField(default=0)
+
+    def save(self, *args, **kwargs):
+        # Телефон — ключ дедупликации, храним в каноническом виде.
+        if self.phone:
+            normalized = normalize_phone(self.phone)
+            if normalized:
+                self.phone = normalized
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"

@@ -12,6 +12,14 @@ from patients.models import Patient
 from appointments.models import Appointment
 from leads.models import Lead
 
+from django.db import transaction
+from core.phone import normalize_phone
+from patients.services import (
+    find_or_create_patient_by_phone,
+    find_patient_by_phone,
+    link_open_leads_to_patient,
+)
+
 from .serializers import (
     SendOtpSerializer,
     VerifyOtpSerializer,
@@ -55,7 +63,7 @@ class VerifyOtpView(APIView):
         serializer = VerifyOtpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        phone = serializer.validated_data['phone']
+        phone = normalize_phone(serializer.validated_data['phone'])
         code = serializer.validated_data['code']
 
         if code != HARDCODED_OTP:
@@ -64,27 +72,36 @@ class VerifyOtpView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Find or create a Patient by phone
-        patient, _ = Patient.objects.get_or_create(
-            phone=phone,
-            defaults={'first_name': '', 'last_name': ''},
-        )
-
-        # Ensure the patient has a linked User for token auth
-        if patient.user is None:
-            # Create a user with phone as username (unique)
-            user = User.objects.create_user(
-                username=f'client_{phone}',
-                phone=phone,
-                password=None,  # no password, token-only auth
+        if not phone:
+            return Response(
+                {'detail': 'Invalid phone number.'},
+                status=status.HTTP_400_BAD_REQUEST,
             )
-            patient.user = user
-            patient.save(update_fields=['user'])
-        else:
-            user = patient.user
 
-        # Get or create auth token
-        token, _ = Token.objects.get_or_create(user=user)
+        with transaction.atomic():
+            # Пациент ищется/создаётся по нормализованному телефону —
+            # один номер = один пациент, даже если заявка приходила в др. формате.
+            patient, created = find_or_create_patient_by_phone(phone)
+
+            # Гарантируем привязанного User для токен-авторизации.
+            if patient.user is None:
+                user = User.objects.create_user(
+                    username=f'client_{phone}',
+                    phone=phone,
+                    # email уникален в модели — даём детерминированный плейсхолдер.
+                    email=f'{phone}@clients.local',
+                    password=None,  # no password, token-only auth
+                )
+                patient.user = user
+                patient.save(update_fields=['user'])
+            else:
+                user = patient.user
+
+            # Привязываем все открытые заявки с этим телефоном к пациенту.
+            link_open_leads_to_patient(patient, actor=user)
+
+            # Get or create auth token
+            token, _ = Token.objects.get_or_create(user=user)
 
         return Response({
             'token': token.key,
@@ -183,7 +200,18 @@ class ClientAppointmentDetailView(generics.RetrieveAPIView):
 class ClientLeadCreateView(generics.CreateAPIView):
     """
     Submit lead information. No authentication required.
+
+    Если пациент с таким телефоном уже существует — заявка сразу
+    привязывается к нему (Lead.converted_patient), чтобы менеджер
+    видел, что это уже знакомый клиент.
     """
     permission_classes = [AllowAny]
     serializer_class = ClientLeadSerializer
     queryset = Lead.objects.all()
+
+    def perform_create(self, serializer):
+        lead = serializer.save()
+        patient = find_patient_by_phone(lead.phone)
+        if patient:
+            lead.converted_patient = patient
+            lead.save(update_fields=['converted_patient', 'updated_at'])
