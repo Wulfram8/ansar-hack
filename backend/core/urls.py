@@ -7,6 +7,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, Sp
 from accounts.views import UserViewSet, RoleViewSet, DoctorViewSet
 from patients.views import PatientViewSet, PatientSourceViewSet, PatientTagViewSet
 from leads.views import LeadViewSet
+from communications.views import StaffChatViewSet
 from appointments.views import AppointmentViewSet, ServiceViewSet
 from notifications.views import (
     NotificationTemplateViewSet,
@@ -22,6 +23,7 @@ router.register(r'patients', PatientViewSet, basename='patient')
 router.register(r'patient-sources', PatientSourceViewSet, basename='patient-source')
 router.register(r'patient-tags', PatientTagViewSet, basename='patient-tag')
 router.register(r'leads', LeadViewSet, basename='lead')
+router.register(r'chats', StaffChatViewSet, basename='chat')
 router.register(r'appointments', AppointmentViewSet, basename='appointment')
 router.register(r'services', ServiceViewSet, basename='service')
 router.register(r'notifications/templates', NotificationTemplateViewSet, basename='notification-template')

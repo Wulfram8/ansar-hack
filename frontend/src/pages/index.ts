@@ -14,5 +14,6 @@ export { SettingsPage } from "./settings";
 export { NotificationsPage } from "./notifications-log";
 export { ProfilePage } from "./profile";
 export { AssistantPage } from "./assistant";
+export { ChatPage } from "./communications";
 export { LoginPage } from "./login";
 export { NotFoundPage } from "./error";

@@ -17,6 +17,7 @@ import {
   SettingsPage,
   ProfilePage,
   AssistantPage,
+  ChatPage,
   LoginPage,
   NotFoundPage,
 } from "@/pages";
@@ -52,6 +53,7 @@ export function AppRouter() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/assistant" element={<AssistantPage />} />
+        <Route path="/chat" element={<ChatPage />} />
 
         <Route path="*" element={<NotFoundPage />} />
       </Route>

@@ -29,6 +29,11 @@ export const resources: ResourceProps[] = [
     meta: { label: "Лиды" },
   },
   {
+    name: "chats",
+    list: "/chat",
+    meta: { label: "Чат" },
+  },
+  {
     name: "schedule",
     list: "/schedule",
     meta: { label: "Расписание врачей" },

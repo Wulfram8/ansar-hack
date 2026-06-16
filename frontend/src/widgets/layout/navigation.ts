@@ -5,6 +5,7 @@ import {
   CalendarDays,
   UserPlus,
   MessageSquare,
+  MessagesSquare,
   Bell,
   Sparkles,
   UserCog,
@@ -41,6 +42,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { to: "/appointments", label: "Записи", icon: CalendarCheck, badgeKey: "appointmentsToday" },
       { to: "/schedule", label: "Расписание врачей", icon: CalendarDays },
       { to: "/leads", label: "Лиды", icon: UserPlus, badgeKey: "newLeads" },
+      { to: "/chat", label: "Чат", icon: MessagesSquare },
     ],
   },
   {
